@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "allowSyntheticDefaultImports": true,
+    "declaration": true,
+    "declarationMap": true,
+    "emitDeclarationOnly": true,
+    "esModuleInterop": true,
+    "lib": ["ES2022"],
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "outDir": "dist",
+    "resolveJsonModule": true,
+    "rootDir": ".",
+    "strict": true,
+    "target": "ES2022",
+    "skipLibCheck": true,
+    "useUnknownInCatchVariables": false
+  },
+  "include": ["**/*.ts"],
+  "exclude": ["dist", "node_modules"]
+}

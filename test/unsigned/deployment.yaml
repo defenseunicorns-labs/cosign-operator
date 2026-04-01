@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: unsigned-app
+  namespace: unsigned-test
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: unsigned-app
+  template:
+    metadata:
+      labels:
+        app: unsigned-app
+    spec:
+      containers:
+        - name: unsigned-app
+          image: docker.io/library/nginx:1.27-alpine
+          ports:
+            - containerPort: 80

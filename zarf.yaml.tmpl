@@ -1,0 +1,28 @@
+kind: ZarfPackageConfig
+metadata:
+  name: example-signed-app
+  description: "Example app with cosign signature and SBOM attestation"
+  version: "0.0.1"
+
+components:
+  - name: example-app
+    required: true
+    manifests:
+      - name: example-app
+        namespace: example-app
+        files:
+          - manifests/deployment.yaml
+          - manifests/service.yaml
+    images:
+      - ${IMAGE_REF}
+      - ${IMAGE_SIG}
+      - ${IMAGE_ATT}
+    actions:
+      onDeploy:
+        after:
+          - wait:
+              cluster:
+                kind: deployment
+                name: example-app
+                namespace: example-app
+                condition: available

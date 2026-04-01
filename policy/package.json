@@ -1,0 +1,37 @@
+{
+  "name": "image-signature-policy",
+  "version": "0.0.1",
+  "description": "Pepr policy that enforces cosign image signature verification",
+  "scripts": {
+    "dev": "npx pepr dev",
+    "build": "npx pepr build"
+  },
+  "dependencies": {
+    "pepr": "1.1.5"
+  },
+  "pepr": {
+    "name": "Image Signature Policy",
+    "uuid": "image-signature-policy",
+    "onError": "reject",
+    "logLevel": "info",
+    "alwaysIgnore": {
+      "namespaces": []
+    },
+    "admission": {
+      "alwaysIgnore": {
+        "namespaces": [
+          "zarf",
+          "pepr-system"
+        ]
+      }
+    },
+    "watch": {
+      "alwaysIgnore": {
+        "namespaces": [
+          "zarf",
+          "pepr-system"
+        ]
+      }
+    }
+  }
+}

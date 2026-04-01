@@ -1,0 +1,19 @@
+# Generated files
+zarf.yaml
+manifests/deployment.yaml
+sbom.spdx.json
+zarf-package-*.tar.zst
+test/unsigned/zarf-package-*.tar.zst
+
+# Cosign keys (never commit private keys)
+cosign.key
+cosign.pub
+
+# Zarf cache
+.zarf-cache/
+
+# Node
+policy/node_modules/
+policy/dist/
+
+.claude/settings.local.json
