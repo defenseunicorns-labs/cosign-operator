@@ -14,7 +14,7 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-        
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -50,7 +50,7 @@ jobs:
         run: curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash
 
       - name: Install Zarf
-        uses: defenseunicorns/setup-zarf@v1
+        uses: defenseunicorns/setup-zarf@main
 
       - name: Install UDS CLI
         run: |
