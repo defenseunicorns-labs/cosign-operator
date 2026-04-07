@@ -6,7 +6,7 @@ COSIGN_PUB ?= cosign.pub
 
 FULL_IMAGE = $(REGISTRY)/$(IMAGE_NAME):$(IMAGE_TAG)
 
-.PHONY: all clean keys build push sign-and-package verify deploy-policy test-policy test-policy-positive test-policy-negative
+.PHONY: all clean crds keys build push sign-and-package verify deploy-policy test-policy test-policy-positive test-policy-negative
 
 # Full workflow: build, push, sign, generate SBOM, attest, create Zarf package
 all: build push sign-and-package
@@ -18,6 +18,11 @@ keys:
 # Build the container image
 build:
 	docker build -t $(FULL_IMAGE) .
+
+# Generate TypeScript classes from CRDS
+crds:
+	npx kubernetes-fluent-client crd chart/crds/signature.crd.yaml policy/capabilities/generated/
+	npx kubernetes-fluent-client crd chart/crds/sbom.crd.yaml policy/capabilities/generated/
 
 # Push to the source registry
 push:

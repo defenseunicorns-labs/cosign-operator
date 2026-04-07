@@ -58,9 +58,7 @@ export async function resolveDigest(
 
   const digest = resp.headers.get("docker-content-digest");
   if (!digest) {
-    throw new Error(
-      `No Docker-Content-Digest header for ${repo}:${tag}`,
-    );
+    throw new Error(`No Docker-Content-Digest header for ${repo}:${tag}`);
   }
   return digest;
 }

@@ -1,0 +1,54 @@
+variables:
+  - name: VERSION
+    default: "0.0.1"
+
+tasks:
+  - name: build-image
+    description: Build the hello-world Docker image
+    actions:
+      - cmd: docker build -t hello-world:${VERSION} .
+
+  - name: create-package
+    description: Create the Zarf package
+    actions:
+      - cmd: zarf package create --confirm --architecture arm64
+
+  - name: create-bundle
+    description: Create the UDS bundle
+    actions:
+      - cmd: uds create bundle/ --confirm --architecture arm64
+
+  - name: setup-cluster
+    description: Create a k3d cluster with UDS Core for local development
+    actions:
+      - cmd: uds deploy oci://ghcr.io/defenseunicorns/packages/uds/bundles/k3d-core-slim-dev:0.62.0 --confirm
+
+  - name: deploy-package
+    description: Deploy just the Zarf package to a cluster that already has UDS Core
+    actions:
+      - cmd: zarf package deploy zarf-package-hello-world-arm64-${VERSION}.tar.zst --confirm
+
+  - name: deploy-bundle
+    description: Deploy the full UDS bundle (init + core + app)
+    actions:
+      - cmd: uds deploy bundle/uds-bundle-hello-world-arm64-${VERSION}.tar.zst --confirm
+
+  - name: dev
+    description: Build, package, and deploy to existing UDS Core cluster
+    actions:
+      - task: build-image
+      - task: create-package
+      - task: deploy-package
+
+  - name: all
+    description: Build, package, bundle, and deploy everything
+    actions:
+      - task: build-image
+      - task: create-package
+      - task: create-bundle
+      - task: deploy-bundle
+
+  - name: clean
+    description: Remove the k3d cluster
+    actions:
+      - cmd: k3d cluster delete uds

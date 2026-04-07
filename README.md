@@ -21,6 +21,13 @@ Demonstrates an end-to-end workflow for building, signing, and deploying contain
 
 ## Quick start
 
+### 0. Generate TypeScript classes for CRDs
+
+```bash
+npx kubernetes-fluent-client crds crd/signature.crd.yaml policy/capabilities/generated/
+npx kubernetes-fluent-client crds crd/sbom.crd.yaml policy/capabilities/generated/
+```
+
 ### 1. Generate cosign keys
 
 ```sh

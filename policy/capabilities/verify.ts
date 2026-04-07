@@ -5,14 +5,20 @@
  * signature from a trusted public key. Follows UDS Core policy patterns.
  */
 
-import { a, K8s, kind, Log } from "pepr";
+import { a, K8s, kind, Log, sdk } from "pepr";
 import { readFileSync } from "fs";
 import { When } from "./index.js";
 import { verifyCosignSignature } from "./lib/cosign.js";
 import { resolveDigest, type RegistryConfig } from "./lib/registry.js";
+import { SbomEnforcement } from "./generated/sbomenforcement-v1alpha1.js";
+import { SignatureEnforcement } from "./generated/signatureenforcement-v1alpha1.js";
+
+const { containers } = sdk;
 
 const SKIP_ANNOTATION = "image-signature-policy/skip-verify";
 const COSIGN_KEY_PATH = "/etc/cosign/cosign.pub";
+const SigConfig: Record<string, SignatureEnforcement> = {};
+const SbomConfig: Record<string, SbomEnforcement> = {};
 
 /** Load the cosign public key from the mounted secret, falling back to env var. */
 function loadPublicKey(): string | null {
@@ -162,10 +168,7 @@ When(a.Pod)
     }
 
     // Collect all container images (containers + initContainers + ephemeral)
-    const allContainers = [
-      ...(request.Raw.spec?.containers ?? []),
-      ...(request.Raw.spec?.initContainers ?? []),
-    ];
+    const allContainers = containers(request);
 
     const errors: string[] = [];
 
@@ -222,4 +225,24 @@ When(a.Pod)
     }
 
     return request.Approve();
+  });
+
+/**
+ * Watch for changes to SignatureEnforcement and store them
+ */
+When(SignatureEnforcement)
+  .IsCreatedOrUpdated()
+  .Reconcile((sigEnforce) => {
+    Log.info( {sigEnforce}, `Storing SignatureEnforcement`);
+    SigConfig[sigEnforce.metadata!.name] = sigEnforce;
+  });
+
+/**
+ * Watch for changes to SbomEnforcement and store them
+ */
+When(SbomEnforcement)
+  .IsCreatedOrUpdated()
+  .Reconcile((sbomEnforce) => {
+    Log.info( {sbomEnforce}, `Storing SbomEnforcement`);
+    SbomConfig[sbomEnforce.metadata!.name] = sbomEnforce;
   });
