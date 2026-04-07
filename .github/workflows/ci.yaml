@@ -60,6 +60,7 @@ jobs:
           curl -fL "https://github.com/defenseunicorns/uds-cli/releases/download/${UDS_VERSION}/uds-cli_${UDS_VERSION}_Linux_amd64" -o uds
           chmod +x uds
           ./uds version
+          sudo mv uds /usr/local/bin/
 
       - name: Install dependencies
         run: cd policy && npm ci && cd .. && npm ci
