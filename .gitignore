@@ -17,3 +17,4 @@ policy/node_modules/
 policy/dist/
 
 .claude/settings.local.json
+zarf-sbom/

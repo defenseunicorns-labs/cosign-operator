@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "npx pepr dev",
     "build": "npx pepr build",
-    "format": "npx prettier --write **/*.ts"
+    "format": "npx prettier --write **/*.ts",
+    "test:unit": "vitest run"
   },
   "dependencies": {
     "pepr": "1.1.5"
@@ -24,5 +25,8 @@
         "zarf"
       ]
     }
+  },
+  "devDependencies": {
+    "vitest": "^4.1.3"
   }
 }

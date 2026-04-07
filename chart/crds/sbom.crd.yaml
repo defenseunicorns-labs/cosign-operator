@@ -15,6 +15,18 @@ spec:
     - name: v1alpha1
       served: true
       storage: true
+      subresources:
+        status: {}
+      additionalPrinterColumns:
+        - name: Mode
+          type: string
+          jsonPath: .spec.enforcementPolicy.mode
+        - name: Ready
+          type: string
+          jsonPath: .status.conditions[?(@.type=="Ready")].status
+        - name: Age
+          type: date
+          jsonPath: .metadata.creationTimestamp
       schema:
         openAPIV3Schema:
           type: object
@@ -35,9 +47,11 @@ spec:
                 namespaces:
                   type: array
                   minItems: 1
+                  maxItems: 20
                   items:
                     type: string
                     minLength: 1
+                    maxLength: 63
                   x-kubernetes-validations:
                     - rule: "self.all(ns, ns != 'pepr-system' && ns != 'istio-system' && ns != 'zarf' && ns != 'kube-system')"
                       message: "namespaces cannot include pepr-system, istio-system, zarf, or kube-system"
@@ -63,3 +77,52 @@ spec:
                       enum:
                         - enforce
                         - warn
+            status:
+              type: object
+              properties:
+                observedGeneration:
+                  type: integer
+                  format: int64
+                  description: The generation most recently observed by the controller.
+                conditions:
+                  type: array
+                  x-kubernetes-list-type: map
+                  x-kubernetes-list-map-keys:
+                    - type
+                  items:
+                    type: object
+                    required:
+                      - type
+                      - status
+                      - lastTransitionTime
+                    properties:
+                      type:
+                        type: string
+                        description: Type of condition (e.g. Ready, Enforcing).
+                        maxLength: 316
+                      status:
+                        type: string
+                        description: Status of the condition.
+                        enum:
+                          - "True"
+                          - "False"
+                          - "Unknown"
+                      observedGeneration:
+                        type: integer
+                        format: int64
+                        description: The generation that this condition was set for.
+                        minimum: 0
+                      reason:
+                        type: string
+                        description: Machine-readable reason for the condition.
+                        maxLength: 1024
+                        minLength: 1
+                        pattern: "^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$"
+                      message:
+                        type: string
+                        description: Human-readable message.
+                        maxLength: 32768
+                      lastTransitionTime:
+                        type: string
+                        format: date-time
+                        description: Last time the condition transitioned.

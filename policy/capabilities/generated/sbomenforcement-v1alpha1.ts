@@ -6,6 +6,7 @@ export class SbomEnforcement extends GenericKind {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   declare metadata?: { [key: string]: any };
   spec?: Spec;
+  status?: StatusObject;
 }
 
 export interface Spec {
@@ -26,6 +27,50 @@ export interface EnforcementPolicy {
 export enum Mode {
   Enforce = "enforce",
   Warn = "warn",
+}
+
+export interface StatusObject {
+  conditions?: Condition[];
+  /**
+   * The generation most recently observed by the controller.
+   */
+  observedGeneration?: number;
+}
+
+export interface Condition {
+  /**
+   * Last time the condition transitioned.
+   */
+  lastTransitionTime: Date;
+  /**
+   * Human-readable message.
+   */
+  message?: string;
+  /**
+   * The generation that this condition was set for.
+   */
+  observedGeneration?: number;
+  /**
+   * Machine-readable reason for the condition.
+   */
+  reason?: string;
+  /**
+   * Status of the condition.
+   */
+  status: StatusEnum;
+  /**
+   * Type of condition (e.g. Ready, Enforcing).
+   */
+  type: string;
+}
+
+/**
+ * Status of the condition.
+ */
+export enum StatusEnum {
+  False = "False",
+  True = "True",
+  Unknown = "Unknown",
 }
 
 RegisterKind(SbomEnforcement, {
