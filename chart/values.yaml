@@ -1,0 +1,190 @@
+imagePullSecrets: []
+package:
+  enabled: false
+  labels: {}
+  annotations: {}
+additionalIgnoredNamespaces:
+  - 'pepr-system'
+  - 'kube-sytem'
+  - 'istio-system'
+  - 'zarf'
+rbac:
+  - apiGroups:
+      - pepr.dev
+    resources:
+      - peprstores
+    verbs:
+      - create
+      - get
+      - list
+      - patch
+      - watch
+  - apiGroups:
+    - ""
+    resources:
+    - secrets
+    verbs:
+    - get
+  - apiGroups:
+    - policy.uds.dev
+    resources:
+      - signatureenforcements
+      - sbomenforcements
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+      - policy.uds.dev
+    resources:
+      - signatureenforcements/status
+      - sbomenforcements/status
+    verbs:
+      - patch
+      - update
+  - apiGroups:
+    - apiextensions.k8s.io
+    resources:
+    - customresourcedefinitions
+    verbs:
+    - create
+    - get
+    - patch
+    - update
+    - list
+    - watch
+secrets:
+  apiPath: 'ZjQ4MWVkODIxOTVjNzFjNWRjMjc0YThlMmRhYzMzZmIwNWY3NGQ2YzA0ZTY4ODU1MjMyNjU1ZWFiZjc1ZjQxMQ=='
+  cosignPublicKey: 'LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUZrd0V3WUhLb1pJemowQ0FRWUlLb1pJemowREFRY0RRZ0FFUUZ4Tm84dGxBRnVtMG9nUndyTXFJYmIvWHdiawozQytWaFhtck9ZdHdRYlJEVjFpUnR2ZlkrU2VGRHdKNWdHNTVLcVR2bE1QR09WOHFMMnMvTlI5cXZBPT0KLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0tCg=='
+hash: '32b99536fe150fc4dd0b78cd5921420e8224f9a651b704e16aa997775cd45f1b'
+namespace:
+  annotations: {}
+  labels:
+    pepr.dev: ''
+uuid: 'pepr-image-signature-policy'
+admission:
+  enabled: true
+  antiAffinity: false
+  terminationGracePeriodSeconds: 5
+  failurePolicy: 'Fail'
+  env:
+    - name: 'PEPR_PRETTY_LOG'
+      value: 'false'
+    - name: 'LOG_LEVEL'
+      value: 'info'
+  envFrom: []
+  image: 'ghcr.io/defenseunicorns/pepr/controller:v1.1.5'
+  annotations:
+    pepr.dev/description: 'Pepr policy that enforces cosign image signature verification'
+  labels:
+    app: 'pepr-image-signature-policy'
+    pepr.dev/controller: 'admission'
+    pepr.dev/uuid: 'image-signature-policy'
+  securityContext:
+    runAsUser: 65532
+    runAsGroup: 65532
+    runAsNonRoot: true
+    fsGroup: 65532
+  readinessProbe:
+    httpGet:
+      path: '/healthz'
+      port: 3000
+      scheme: 'HTTPS'
+    initialDelaySeconds: 10
+  livenessProbe:
+    httpGet:
+      path: '/healthz'
+      port: 3000
+      scheme: 'HTTPS'
+    initialDelaySeconds: 10
+  resources:
+    requests:
+      memory: '256Mi'
+      cpu: '200m'
+    limits:
+      memory: '512Mi'
+      cpu: '500m'
+  containerSecurityContext:
+    runAsUser: 65532
+    runAsGroup: 65532
+    runAsNonRoot: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - 'ALL'
+  podAnnotations: {}
+  podLabels: {}
+  nodeSelector: {}
+  tolerations: []
+  extraVolumeMounts:
+  - name: cosign-key
+    mountPath: /etc/cosign
+    readOnly: true
+  extraVolumes:
+  - name: cosign-key
+    secret:
+      secretName: cosign-public-key
+  affinity: {}
+  serviceMonitor:
+    enabled: false
+    labels: {}
+    annotations: {}
+watcher:
+  enabled: false
+  terminationGracePeriodSeconds: 5
+  env:
+    - name: 'PEPR_PRETTY_LOG'
+      value: 'false'
+    - name: 'LOG_LEVEL'
+      value: 'info'
+  envFrom: []
+  image: 'ghcr.io/defenseunicorns/pepr/controller:v1.1.5'
+  annotations:
+    pepr.dev/description: 'Pepr policy that enforces cosign image signature verification'
+  labels:
+    app: 'pepr-image-signature-policy-watcher'
+    pepr.dev/controller: 'watcher'
+    pepr.dev/uuid: 'image-signature-policy'
+  securityContext:
+    runAsUser: 65532
+    runAsGroup: 65532
+    runAsNonRoot: true
+    fsGroup: 65532
+  readinessProbe:
+    httpGet:
+      path: '/healthz'
+      port: 3000
+      scheme: 'HTTPS'
+    initialDelaySeconds: 10
+  livenessProbe:
+    httpGet:
+      path: '/healthz'
+      port: 3000
+      scheme: 'HTTPS'
+    initialDelaySeconds: 10
+  resources:
+    requests:
+      memory: '256Mi'
+      cpu: '200m'
+    limits:
+      memory: '512Mi'
+      cpu: '500m'
+  containerSecurityContext:
+    runAsUser: 65532
+    runAsGroup: 65532
+    runAsNonRoot: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - 'ALL'
+  nodeSelector: {}
+  tolerations: []
+  extraVolumeMounts: []
+  extraVolumes: []
+  affinity: {}
+  podAnnotations: {}
+  podLabels: {}
+  serviceMonitor:
+    enabled: false
+    labels: {}
+    annotations: {}

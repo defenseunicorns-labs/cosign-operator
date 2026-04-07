@@ -1,0 +1,18 @@
+kind: UDSBundle
+metadata:
+  name: image-signature-policy
+  description: Image signature/SBOM policy for UDS
+  version: 0.0.1
+
+packages:
+  - name: init
+    repository: ghcr.io/zarf-dev/packages/init
+    ref: v0.73.0
+
+  # - name: uds-core
+  #   repository: ghcr.io/defenseunicorns/packages/uds/core
+  #   ref: 0.62.0-upstream
+    
+  - name: pepr-image-signature-policy
+    path: ../
+    ref: 0.0.1

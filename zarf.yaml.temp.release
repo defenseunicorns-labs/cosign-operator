@@ -1,0 +1,16 @@
+kind: ZarfPackageConfig
+metadata:
+  name: pepr-image-signature-policy
+  description: 'Pepr Module: Pepr policy that enforces cosign image signature verification'
+  url: https://github.com/defenseunicorns/pepr
+  version: ${VERSION}
+components:
+  - name: cosign-hook
+    required: true
+    images:
+      - ghcr.io/defenseunicorns/pepr/controller:v1.1.5
+    charts:
+      - name: cosign-hook
+        namespace: pepr-system
+        version: ${VERSION}
+        localPath: chart

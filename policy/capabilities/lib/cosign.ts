@@ -7,11 +7,7 @@
  */
 
 import { createVerify } from "crypto";
-import {
-  getBlob,
-  getManifest,
-  type RegistryConfig,
-} from "./registry.js";
+import { getBlob, getManifest, type RegistryConfig, type OciManifest } from "./registry.js";
 
 const SIMPLESIGNING_MEDIA_TYPE =
   "application/vnd.dev.cosign.simplesigning.v1+json";
@@ -43,7 +39,7 @@ export async function verifyCosignSignature(
   const sigTag = `sha256-${digestHex}.sig`;
 
   // Fetch the .sig manifest
-  let manifest;
+  let manifest: OciManifest;
   try {
     manifest = await getManifest(registry, repo, sigTag, config);
   } catch {
@@ -87,7 +83,8 @@ export async function verifyCosignSignature(
   // Verify the payload's claimed digest matches the image we're checking
   try {
     const payloadJson = JSON.parse(payload.toString("utf-8"));
-    const claimedDigest = payloadJson?.critical?.image?.["docker-manifest-digest"];
+    const claimedDigest =
+      payloadJson?.critical?.image?.["docker-manifest-digest"];
     if (claimedDigest !== digest) {
       return {
         verified: false,
@@ -104,11 +101,7 @@ export async function verifyCosignSignature(
   // Verify the ECDSA signature
   const verifier = createVerify("SHA256");
   verifier.update(payload);
-  const isValid = verifier.verify(
-    publicKeyPEM,
-    signatureBase64,
-    "base64",
-  );
+  const isValid = verifier.verify(publicKeyPEM, signatureBase64, "base64");
 
   if (!isValid) {
     return {

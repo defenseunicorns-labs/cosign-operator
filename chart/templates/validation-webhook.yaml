@@ -1,0 +1,78 @@
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: {{ .Values.uuid }}
+webhooks:
+  - admissionReviewVersions:
+      - v1
+      - v1beta1
+    clientConfig:
+      caBundle: >-
+        LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tDQpNSUlDdERDQ0FaeWdBd0lCQWdJQkFUQU5CZ2txaGtpRzl3MEJBUXNGQURBY01Sb3dHQVlEVlFRREV4RlFaWEJ5DQpJRVZ3YUdWdFpYSmhiQ0JEUVRBZUZ3MHlOakEwTURjeE9URTRNREphRncweU56QTBNRGN4T1RFNE1ESmFNQUF3DQpnZ0VpTUEwR0NTcUdTSWIzRFFFQkFRVUFBNElCRHdBd2dnRUtBb0lCQVFDaXZ3bFRhUURjWStUbjFVQVdmbmt0DQpaTXU0MDJ2ZkJPV2p6VmNpVXFsaUFtNmFQN2l1S05YZUZEUC9IUit3Zmw1TFBvRDhWSllZUWlvL2t2ZDRvY0hzDQpxaklXQkxLZHQzWW5UUHQzM3ZOcEQxY3hqd2gvYWdEK0pBWVpGQWdUTFhYR0pHSTFLK2hLTDdQK1h6K0JjUlF2DQpNNUxSRDVkdXdlUk1JTDZXMWhKV09Rc3J1T0RzOFBkRnFmaFFTc1RDRFpzeEJnZXpoYUdxUzhMME5kMlo3SU9RDQpqMTZ1SHhSbVFZL1pIc1pWci9BeEk0VVdJUXZKem81ZDNVY2tMUDFoS0l2YzMrcVNKb3VyMkx0WTdVQlNubUZ0DQovUVBLZm8zWjBvUFZRcHI3Y2JPdjgwVEFianhEdFg3NytwQ1pra3QzZlh2bkJJdnZMeXBZZXZTd0JjaFh2cGRqDQpBZ01CQUFHakhUQWJNQXdHQTFVZEV3UUZNQU1CQWY4d0N3WURWUjBQQkFRREFnTDBNQTBHQ1NxR1NJYjNEUUVCDQpDd1VBQTRJQkFRQWw4eGQ4eFZLdnJacVAyNCtsQTZIT09DSVd2K1NBclI2eFMrbVpBMkdNQnhORWxWeDltSndiDQplTlowdkQ3cmpwOHBvK2VhdjNTdCthdHVhb3Vhd2tNdUhoWDB6WmNNbTQ3bEsyYy80d3FQdEFOSzBtTmQzaldjDQp0NWFaUE5reFBhalp5WmNCY3FrTWhFdE5iNjQ0Mms4WTV2bElOSndINHdCVjhDZ2I3Y2wyM1J2S0lyaElYTXhsDQpYTS9zSmVhOVA1cW51L2c4SXdIeXdYbEgwdUQ0Sk9XamlkY1VvOG50dUEyY2kyN1llS1VNWlZYSHZRZHhSRHRwDQpvcGFVYTI2UXJaODAxRHpydm0ra3c2RFdEOTlpdlh1bkU3V0JWNEZhWjVsd2hxMkNDZU12WU1LbCtPTGpLYll1DQpFenB5cWpUeENIcWgxNzFucVhjeDRIRDNwWFFEcU9Tbg0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQ0K
+      service:
+        name: {{ .Values.uuid }}
+        namespace: pepr-system
+        path: >-
+          /validate/f481ed82195c71c5dc274a8e2dac33fb05f74d6c04e68855232655eabf75f411
+    failurePolicy: {{ .Values.admission.failurePolicy }}
+    matchPolicy: Equivalent
+    name: {{ .Values.uuid }}.pepr.dev
+    namespaceSelector:
+      matchExpressions:
+        - key: kubernetes.io/metadata.name
+          operator: NotIn
+          values:
+            - kube-system
+            - pepr-system
+            {{- range .Values.additionalIgnoredNamespaces }}
+            - {{ . }}
+            {{- end }}
+            - pepr-system
+            - kube-sytem
+            - istio-system
+            - zarf
+    rules:
+      - apiGroups:
+          - ''
+        apiVersions:
+          - v1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - pods
+          - pods/ephemeralcontainers
+      - apiGroups:
+          - policy.uds.dev
+        apiVersions:
+          - v1alpha1
+        operations:
+          - DELETE
+        resources:
+          - signatureenforcements
+      - apiGroups:
+          - policy.uds.dev
+        apiVersions:
+          - v1alpha1
+        operations:
+          - DELETE
+        resources:
+          - sbomenforcements
+      - apiGroups:
+          - policy.uds.dev
+        apiVersions:
+          - v1alpha1
+        operations:
+          - CREATE
+        resources:
+          - signatureenforcements
+      - apiGroups:
+          - policy.uds.dev
+        apiVersions:
+          - v1alpha1
+        operations:
+          - CREATE
+        resources:
+          - sbomenforcements
+    sideEffects: None
+    timeoutSeconds: 10

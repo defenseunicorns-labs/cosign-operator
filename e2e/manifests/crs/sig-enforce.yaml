@@ -1,0 +1,10 @@
+apiVersion: policy.uds.dev/v1alpha1
+kind: SignatureEnforcement
+metadata:
+  name: sig-enforce-test
+spec:
+  namespaces:
+    - e2e-sig-enforce
+    - e2e-signed-app
+  enforcementPolicy:
+    mode: enforce

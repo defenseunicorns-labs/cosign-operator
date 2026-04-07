@@ -5,25 +5,45 @@
  * signature from a trusted public key. Follows UDS Core policy patterns.
  */
 
-import { a, K8s, kind, Log } from "pepr";
+import { a, K8s, kind, Log, sdk } from "pepr";
 import { readFileSync } from "fs";
 import { When } from "./index.js";
 import { verifyCosignSignature } from "./lib/cosign.js";
 import { resolveDigest, type RegistryConfig } from "./lib/registry.js";
+import { shouldUpdateStatus, buildReadyStatus } from "./lib/status.js";
+import { findMode, collectDeniedComponents } from "./lib/policy.js";
+import { fetchSbomComponents, checkDeniedComponents } from "./lib/sbom.js";
+import { SbomEnforcement } from "./generated/sbomenforcement-v1alpha1.js";
+import { SignatureEnforcement } from "./generated/signatureenforcement-v1alpha1.js";
+
+const { containers } = sdk;
 
 const SKIP_ANNOTATION = "image-signature-policy/skip-verify";
 const COSIGN_KEY_PATH = "/etc/cosign/cosign.pub";
+const SigConfig: Record<string, SignatureEnforcement> = {};
+const SbomConfig: Record<string, SbomEnforcement> = {};
 
-/** Load the cosign public key from the mounted secret, falling back to env var. */
+/** Cached cosign public key, loaded once at startup. */
+let cachedPublicKey: string | null | undefined;
 function loadPublicKey(): string | null {
+  if (cachedPublicKey !== undefined) return cachedPublicKey;
   try {
-    return readFileSync(COSIGN_KEY_PATH, "utf-8");
+    cachedPublicKey = readFileSync(COSIGN_KEY_PATH, "utf-8");
   } catch {
-    // Fall back to env var
+    cachedPublicKey = process.env.COSIGN_PUBLIC_KEY ?? null;
   }
-  return process.env.COSIGN_PUBLIC_KEY ?? null;
+  console.log(`Loaded cosign public key: ${cachedPublicKey}`);
+  return cachedPublicKey;
 }
-
+loadPublicKey(); // Load at startup so it's ready for the first request
+loadZarfRegistryInfo();
+(async () => {
+  new Promise((resolve) => setTimeout(resolve, 1000)).then(() => {
+    console.log({ zarfRegistryInfo }, "Initial Zarf registry info:");
+    console.log({ SigConfig }, "Initial Signature Enforcement configs:");
+    console.log({ SbomConfig }, "Initial SBOM Enforcement configs:");
+  });
+})();
 /** Parse an image reference into registry, repository, tag, and digest. */
 function parseImageRef(imageRef: string): {
   registry: string;
@@ -126,13 +146,17 @@ async function registryConfig(
   const zarfInfo = await loadZarfRegistryInfo();
 
   if (zarfInfo && registry === zarfInfo.address) {
+    // Use in-cluster service name when running in-cluster, otherwise keep the original address
+    const inCluster = process.env.KUBERNETES_SERVICE_HOST;
     return {
       config: {
         allowHttp: true,
         username: zarfInfo.pullUsername,
         password: zarfInfo.pullPassword,
       },
-      resolvedRegistry: "zarf-docker-registry.zarf.svc.cluster.local:5000",
+      resolvedRegistry: inCluster
+        ? "zarf-docker-registry.zarf.svc.cluster.local:5000"
+        : zarfInfo.address,
     };
   }
 
@@ -141,12 +165,42 @@ async function registryConfig(
 }
 
 /**
- * Validate that all container images in a Pod have valid cosign signatures.
+ * Annotate pods targeted by any enforcement policy so it is visible that
+ * the controller has evaluated them.
+ */
+When(a.Pod)
+  .IsCreatedOrUpdated()
+  .Mutate((request) => {
+    const ns = request.Raw.metadata!.namespace!;
+
+    const sigMode = findMode(ns, SigConfig);
+    const sbomMode = findMode(ns, SbomConfig);
+
+    if (sigMode) {
+      request.SetAnnotation(
+        "signatureenforcements.policy.uds.dev",
+        new Date().toISOString(),
+      );
+    }
+    if (sbomMode) {
+      request.SetAnnotation(
+        "sbomenforcements.policy.uds.dev",
+        new Date().toISOString(),
+      );
+    }
+  });
+
+/**
+ * Validate that all container images in a Pod satisfy the enforcement policies
+ * defined by SignatureEnforcement and SbomEnforcement CRs.
+ *
+ * - No matching CRDs for the namespace → approve (no policy).
+ * - Mode "enforce" → deny on failure.
+ * - Mode "warn"   → approve with warnings on failure.
  */
 When(a.Pod)
   .IsCreatedOrUpdated()
   .Validate(async (request) => {
-    // Allow pods with the skip annotation
     if (request.HasAnnotation(SKIP_ANNOTATION)) {
       Log.info(
         `Pod ${request.Raw.metadata?.name} has ${SKIP_ANNOTATION} annotation, skipping verification`,
@@ -154,72 +208,234 @@ When(a.Pod)
       return request.Approve();
     }
 
-    const publicKey = loadPublicKey();
-    if (!publicKey) {
-      return request.Deny(
-        "Image signature policy misconfigured: no cosign public key found (checked /etc/cosign/cosign.pub and COSIGN_PUBLIC_KEY env var)",
-      );
-    }
+    const ns = request.Raw.metadata!.namespace!;
 
-    // Collect all container images (containers + initContainers + ephemeral)
-    const allContainers = [
-      ...(request.Raw.spec?.containers ?? []),
-      ...(request.Raw.spec?.initContainers ?? []),
-    ];
+    const sigMode = findMode(ns, SigConfig);
+    const sbomMode = findMode(ns, SbomConfig);
+
+    // No enforcement policies target this namespace
+    if (!sigMode && !sbomMode) return request.Approve();
 
     const errors: string[] = [];
+    const warnings: string[] = [];
+    const allContainers = containers(request);
+    // --- Signature verification ---
+    if (sigMode) {
+      const publicKey = loadPublicKey();
+      if (!publicKey) {
+        const msg =
+          "Image signature policy misconfigured: no cosign public key found";
+        if (sigMode === "enforce") {
+          errors.push(msg);
+        } else {
+          warnings.push(msg);
+        }
+      } else {
+        for (const container of allContainers) {
+          const image = container.image;
+          if (!image) continue;
 
-    for (const container of allContainers) {
-      const image = container.image;
-      if (!image) continue;
+          const parsed = parseImageRef(image);
+          if (!parsed) {
+            const msg = `${container.name}: unable to parse image ref "${image}"`;
+            sigMode === "enforce" ? errors.push(msg) : warnings.push(msg);
+            continue;
+          }
 
-      const parsed = parseImageRef(image);
-      if (!parsed) {
-        errors.push(`${container.name}: unable to parse image ref "${image}"`);
-        continue;
+          try {
+            const { config, resolvedRegistry } = await registryConfig(
+              parsed.registry,
+            );
+
+            let digest = parsed.digest;
+            if (!digest) {
+              digest = await resolveDigest(
+                resolvedRegistry,
+                parsed.repo,
+                parsed.tag ?? "latest",
+                config,
+              );
+            }
+
+            const result = await verifyCosignSignature(
+              resolvedRegistry,
+              parsed.repo,
+              digest,
+              publicKey,
+              config,
+            );
+
+            if (!result.verified) {
+              const msg = `${container.name} (${image}): ${result.error}`;
+              sigMode === "enforce" ? errors.push(msg) : warnings.push(msg);
+            } else {
+              Log.info(`Verified signature for ${image}`);
+            }
+          } catch (err) {
+            const msg = `${container.name} (${image}): verification error: ${err instanceof Error ? err.message : String(err)}`;
+            sigMode === "enforce" ? errors.push(msg) : warnings.push(msg);
+          }
+        }
       }
+    }
 
-      try {
-        const { config, resolvedRegistry } = await registryConfig(
-          parsed.registry,
-        );
+    // --- SBOM verification ---
+    if (sbomMode) {
+      const denied = collectDeniedComponents(ns, SbomConfig);
 
-        // Resolve tag to digest if needed
-        let digest = parsed.digest;
-        if (!digest) {
-          digest = await resolveDigest(
+      for (const container of allContainers) {
+        const image = container.image;
+        if (!image) continue;
+
+        const parsed = parseImageRef(image);
+        if (!parsed) {
+          const msg = `${container.name}: unable to parse image ref "${image}"`;
+          sbomMode === "enforce" ? errors.push(msg) : warnings.push(msg);
+          continue;
+        }
+
+        try {
+          const { config, resolvedRegistry } = await registryConfig(
+            parsed.registry,
+          );
+
+          let digest = parsed.digest;
+          if (!digest) {
+            digest = await resolveDigest(
+              resolvedRegistry,
+              parsed.repo,
+              parsed.tag ?? "latest",
+              config,
+            );
+          }
+
+          const components = await fetchSbomComponents(
             resolvedRegistry,
             parsed.repo,
-            parsed.tag ?? "latest",
+            digest,
             config,
           );
-        }
 
-        const result = await verifyCosignSignature(
-          resolvedRegistry,
-          parsed.repo,
-          digest,
-          publicKey,
-          config,
-        );
-
-        if (!result.verified) {
-          errors.push(`${container.name} (${image}): ${result.error}`);
-        } else {
-          Log.info(`Verified signature for ${image}`);
+          const violations = checkDeniedComponents(components, denied);
+          for (const v of violations) {
+            const msg = `${container.name} (${image}): ${v}`;
+            sbomMode === "enforce" ? errors.push(msg) : warnings.push(msg);
+          }
+        } catch (err) {
+          const msg = `${container.name} (${image}): SBOM check failed: ${err instanceof Error ? err.message : String(err)}`;
+          sbomMode === "enforce" ? errors.push(msg) : warnings.push(msg);
         }
-      } catch (err) {
-        errors.push(
-          `${container.name} (${image}): verification error: ${err instanceof Error ? err.message : String(err)}`,
-        );
       }
     }
 
     if (errors.length > 0) {
       return request.Deny(
-        `Image signature verification failed:\n${errors.join("\n")}`,
+        `Policy enforcement failed:\n${errors.join("\n")}`,
+        undefined,
+        warnings.length > 0 ? warnings : undefined,
       );
     }
 
-    return request.Approve();
+    return request.Approve(warnings.length > 0 ? warnings : undefined);
+  });
+
+if (
+  process.env.PEPR_WATCH_MODE === "false" ||
+  process.env.PEPR_MODE === "dev"
+) {
+  /**
+   * Watch for changes to SignatureEnforcement and store them
+   */
+  const sigWatch = K8s(SignatureEnforcement).Watch(async (sigEnforce) => {
+    const generation = sigEnforce.metadata?.generation;
+    const observed = sigEnforce.status?.observedGeneration;
+    SigConfig[sigEnforce.metadata!.name] = sigEnforce;
+    if (!shouldUpdateStatus(generation, observed)) return;
+
+    Log.info({ sigEnforce }, `Storing SignatureEnforcement`);
+
+    await K8s(SignatureEnforcement).PatchStatus({
+      metadata: { name: sigEnforce.metadata!.name },
+      status: buildReadyStatus(generation ?? 0),
+    });
+  });
+  sigWatch.start();
+
+  /**
+   * Watch for changes to SbomEnforcement and store them
+   */
+  const sbomWatch = K8s(SbomEnforcement).Watch(async (sbomEnforce) => {
+    const generation = sbomEnforce.metadata?.generation;
+    const observed = sbomEnforce.status?.observedGeneration;
+    SbomConfig[sbomEnforce.metadata!.name] = sbomEnforce;
+    if (!shouldUpdateStatus(generation, observed)) return;
+    Log.info({ sbomEnforce }, `Storing SbomEnforcement`);
+
+    await K8s(SbomEnforcement).PatchStatus({
+      metadata: { name: sbomEnforce.metadata!.name },
+      status: buildReadyStatus(generation ?? 0),
+    });
+  });
+  sbomWatch.start();
+}
+/**
+ * Watch for deletions of SignatureEnforcement and remove them from storage
+ */
+When(SignatureEnforcement)
+  .IsDeleted()
+  .Validate((sigEnforce) => {
+    Log.info({ sigEnforce }, `Removing SignatureEnforcement`);
+    delete SigConfig[sigEnforce.Raw.metadata!.name];
+    return sigEnforce.Approve();
+  });
+
+/**
+ * Watch for deletions of SbomEnforcement and remove them from storage
+ */
+When(SbomEnforcement)
+  .IsDeleted()
+  .Validate((sbomEnforce) => {
+    Log.info({ sbomEnforce }, `Removing SbomEnforcement`);
+    delete SbomConfig[sbomEnforce.Raw.metadata!.name];
+    return sbomEnforce.Approve();
+  });
+
+/**
+ * Ensure only one SignatureEnforcement exists per namespace, and reject if one already exists.
+ */
+When(SignatureEnforcement)
+  .IsCreated()
+  .Validate((sigEnforce) => {
+    const requestedNs = sigEnforce.Raw.spec?.namespaces ?? [];
+    const conflicts = requestedNs.filter(
+      (ns) => findMode(ns, SigConfig) !== null,
+    );
+
+    if (conflicts.length > 0) {
+      return sigEnforce.Deny(
+        `A SignatureEnforcement already exists for namespace(s): ${conflicts.join(", ")}`,
+      );
+    }
+
+    return sigEnforce.Approve();
+  });
+
+/**
+ * Ensure only one SbomEnforcement exists per namespace, and reject if one already exists.
+ */
+When(SbomEnforcement)
+  .IsCreated()
+  .Validate((sbomEnforce) => {
+    const requestedNs = sbomEnforce.Raw.spec?.namespaces ?? [];
+    const conflicts = requestedNs.filter(
+      (ns) => findMode(ns, SbomConfig) !== null,
+    );
+
+    if (conflicts.length > 0) {
+      return sbomEnforce.Deny(
+        `An SbomEnforcement already exists for namespace(s): ${conflicts.join(", ")}`,
+      );
+    }
+
+    return sbomEnforce.Approve();
   });

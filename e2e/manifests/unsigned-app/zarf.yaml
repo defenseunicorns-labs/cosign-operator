@@ -1,0 +1,16 @@
+kind: ZarfPackageConfig
+metadata:
+  name: e2e-unsigned-app
+  version: "0.0.1"
+variables:
+  - name: NAMESPACE
+    default: e2e-unsigned-reject
+components:
+  - name: unsigned-app
+    required: true
+    manifests:
+      - name: app
+        files:
+          - deployment.yaml
+    images:
+      - docker.io/library/nginx:1.27-alpine

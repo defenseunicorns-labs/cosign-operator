@@ -1,0 +1,9 @@
+apiVersion: policy.uds.dev/v1alpha1
+kind: SignatureEnforcement
+metadata:
+  name: sig-skip-test
+spec:
+  namespaces:
+    - e2e-skip
+  enforcementPolicy:
+    mode: enforce

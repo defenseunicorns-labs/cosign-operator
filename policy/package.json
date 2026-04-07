@@ -4,7 +4,9 @@
   "description": "Pepr policy that enforces cosign image signature verification",
   "scripts": {
     "dev": "npx pepr dev",
-    "build": "npx pepr build"
+    "build": "npx pepr build",
+    "format": "npx prettier --write **/*.ts",
+    "test:unit": "vitest run"
   },
   "dependencies": {
     "pepr": "1.1.5"
@@ -15,23 +17,15 @@
     "onError": "reject",
     "logLevel": "info",
     "alwaysIgnore": {
-      "namespaces": []
-    },
-    "admission": {
-      "alwaysIgnore": {
-        "namespaces": [
-          "zarf",
-          "pepr-system"
-        ]
-      }
-    },
-    "watch": {
-      "alwaysIgnore": {
-        "namespaces": [
-          "zarf",
-          "pepr-system"
-        ]
-      }
+      "namespaces": [
+        "pepr-system",
+        "kube-sytem",
+        "istio-system",
+        "zarf"
+      ]
     }
+  },
+  "devDependencies": {
+    "vitest": "^4.1.3"
   }
 }

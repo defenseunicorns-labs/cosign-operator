@@ -1,0 +1,9 @@
+apiVersion: policy.uds.dev/v1alpha1
+kind: SignatureEnforcement
+metadata:
+  name: sig-warn-test
+spec:
+  namespaces:
+    - e2e-unsigned-warn
+  enforcementPolicy:
+    mode: warn

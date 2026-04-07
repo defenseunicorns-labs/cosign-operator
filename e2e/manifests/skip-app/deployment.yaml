@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: e2e-skip-app
+  namespace: ###ZARF_VAR_NAMESPACE###
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: e2e-skip-app
+  template:
+    metadata:
+      labels:
+        app: e2e-skip-app
+      annotations:
+        image-signature-policy/skip-verify: "true"
+    spec:
+      containers:
+        - name: app
+          image: docker.io/library/nginx:1.27-alpine
+          ports:
+            - containerPort: 80

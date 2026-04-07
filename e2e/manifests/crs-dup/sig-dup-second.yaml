@@ -1,0 +1,9 @@
+apiVersion: policy.uds.dev/v1alpha1
+kind: SignatureEnforcement
+metadata:
+  name: sig-dup-second
+spec:
+  namespaces:
+    - e2e-dup
+  enforcementPolicy:
+    mode: enforce

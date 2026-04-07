@@ -6,7 +6,7 @@ COSIGN_PUB ?= cosign.pub
 
 FULL_IMAGE = $(REGISTRY)/$(IMAGE_NAME):$(IMAGE_TAG)
 
-.PHONY: all clean keys build push sign-and-package verify deploy-policy test-policy test-policy-positive test-policy-negative
+.PHONY: all clean crds keys build push sign-and-package verify deploy-policy build-policy test-policy test-policy-positive test-policy-negative test-e2e
 
 # Full workflow: build, push, sign, generate SBOM, attest, create Zarf package
 all: build push sign-and-package
@@ -18,6 +18,11 @@ keys:
 # Build the container image
 build:
 	docker build -t $(FULL_IMAGE) .
+
+# Generate TypeScript classes from CRDS
+crds:
+	npx kubernetes-fluent-client crd chart/crds/signature.crd.yaml policy/capabilities/generated/
+	npx kubernetes-fluent-client crd chart/crds/sbom.crd.yaml policy/capabilities/generated/
 
 # Push to the source registry
 push:
@@ -53,6 +58,8 @@ sign-and-package:
 	echo "==> Creating Zarf package..."; \
 	zarf package create . --confirm --skip-sbom
 
+# kubectl run crane-check --rm -it --restart=Never -l zarf.dev/agent=ignore --image=gcr.io/go-containerregistry/crane -- ls --insecure -u zarf-pull -p 'jpo1v!V01ZdCMx1QPvDdJik7' zarf-docker-registry.zarf.svc.cluster.local:5000/e2e-app
+# kubectl run reg-check --rm -it --restart=Never -l zarf.dev/agent=ignore --image=curlimages/curl -- -s -u 'zarf-pull:jpo1v!V01ZdCMx1QPvDdJik7' http://zarf-docker-registry.zarf.svc.cluster.local:5000/v2/e2e-app/tags/list
 # Verify signature and SBOM attestation
 verify:
 	@set -euo pipefail; \
@@ -63,6 +70,33 @@ verify:
 	echo "==> Verifying SBOM attestation..."; \
 	cosign verify-attestation --key $(COSIGN_PUB) --type spdxjson \
 		--insecure-ignore-tlog=true $${IMAGE_REF}
+
+# Build Pepr module, consolidate chart with CRDs, and copy zarf.yaml to root
+build-policy:
+	cd policy && npx pepr build --zarf chart --custom-name cosign-hook
+	cp policy/dist/image-signature-policy-chart/Chart.yaml chart/
+ 	#custom for this module - DO NOT DELETE - cp policy/dist/image-signature-policy-chart/values.yaml chart/ 
+ 	#custom for this module - DO NOT DELETE - cp policy/dist/image-signature-policy-chart/values.schema.json chart/
+	cp -r policy/dist/image-signature-policy-chart/charts chart/
+	mkdir -p /tmp/pepr-chart-preserve
+	cp chart/templates/cosign-secret.yaml chart/templates/package.yaml /tmp/pepr-chart-preserve/
+	cp -r policy/dist/image-signature-policy-chart/templates chart/
+	cp /tmp/pepr-chart-preserve/cosign-secret.yaml /tmp/pepr-chart-preserve/package.yaml chart/templates/
+	rm -rf /tmp/pepr-chart-preserve
+	@# Generate cosign keys if they don't already exist
+	@test -f $(COSIGN_KEY) || COSIGN_PASSWORD="" cosign generate-key-pair
+	@# Patch hash, apiPath, and cosignPublicKey into chart/values.yaml
+	@set -e; \
+	HASH=$$(grep "^hash:" policy/dist/image-signature-policy-chart/values.yaml | sed "s/hash: '//;s/'//;s/ //g"); \
+	API_PATH=$$(grep "apiPath:" policy/dist/image-signature-policy-chart/values.yaml | sed "s/.*apiPath: '//;s/'//"); \
+	COSIGN_B64=$$(base64 -w0 $(COSIGN_PUB)); \
+	sed -i "s|^hash: '.*'|hash: '$$HASH'|" chart/values.yaml; \
+	sed -i "s|apiPath: '.*'|apiPath: '$$API_PATH'|" chart/values.yaml; \
+	sed -i "s|cosignPublicKey: '.*'|cosignPublicKey: '$$COSIGN_B64'|" chart/values.yaml
+	cp policy/dist/zarf.yaml zarf.yaml
+	sed -i 's|localPath: image-signature-policy-chart|localPath: chart|' zarf.yaml
+	@echo "==> Built chart at chart/ (CRDs deploy first via Helm convention)"
+	@echo "==> Zarf config at zarf.yaml"
 
 # Deploy the Pepr image signature policy
 deploy-policy:
@@ -104,6 +138,14 @@ test-policy-negative:
 	@echo "    Cleaning up..."
 	@kubectl delete namespace unsigned-test --ignore-not-found 2>/dev/null || true
 	@rm -f test/unsigned/zarf-package-*.tar.zst
+
+# Setup e2e: registry, build, sign, package, namespaces, CRDs
+setup-e2e:
+	./e2e/setup.sh
+
+# Run e2e tests (run setup-e2e first)
+test-e2e:
+	npx vitest run --config e2e/vitest.config.ts
 
 # Remove generated files
 clean:

@@ -1,0 +1,21 @@
+kind: ZarfPackageConfig
+metadata:
+  name: e2e-signed-app
+  version: "0.0.1"
+variables:
+  - name: NAMESPACE
+    default: e2e-signed-app
+constants:
+  - name: IMAGE
+    value: "${IMAGE_REF}"
+components:
+  - name: signed-app
+    required: true
+    manifests:
+      - name: app
+        files:
+          - deployment.yaml
+    images:
+      - ${IMAGE_REF}
+      - ${IMAGE_SIG}
+      - ${IMAGE_SBOM}
