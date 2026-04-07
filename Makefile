@@ -6,7 +6,7 @@ COSIGN_PUB ?= cosign.pub
 
 FULL_IMAGE = $(REGISTRY)/$(IMAGE_NAME):$(IMAGE_TAG)
 
-.PHONY: all clean crds keys build push sign-and-package verify deploy-policy test-policy test-policy-positive test-policy-negative
+.PHONY: all clean crds keys build push sign-and-package verify deploy-policy build-policy test-policy test-policy-positive test-policy-negative
 
 # Full workflow: build, push, sign, generate SBOM, attest, create Zarf package
 all: build push sign-and-package
@@ -68,6 +68,18 @@ verify:
 	echo "==> Verifying SBOM attestation..."; \
 	cosign verify-attestation --key $(COSIGN_PUB) --type spdxjson \
 		--insecure-ignore-tlog=true $${IMAGE_REF}
+
+# Build Pepr module, consolidate chart with CRDs, and copy zarf.yaml to root
+build-policy:
+	cd policy && npx pepr build --zarf chart --custom-name cosign-hook
+	cp policy/dist/image-signature-policy-chart/Chart.yaml chart/
+# 	cp policy/dist/image-signature-policy-chart/values.yaml chart/
+	cp policy/dist/image-signature-policy-chart/values.schema.json chart/
+	cp -r policy/dist/image-signature-policy-chart/charts chart/
+	cp -r policy/dist/image-signature-policy-chart/templates chart/
+	cp policy/dist/zarf.yaml zarf.yaml
+	@echo "==> Built chart at chart/ (CRDs deploy first via Helm convention)"
+	@echo "==> Zarf config at zarf-policy.yaml"
 
 # Deploy the Pepr image signature policy
 deploy-policy:
