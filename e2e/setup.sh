@@ -106,7 +106,7 @@ done
 echo "==> Deploying signed app to enforced namespaces via kubectl..."
 kubectl apply -f "$RESOLVED/signed-app-e2e-sig-enforce.yaml"
 kubectl apply -f "$RESOLVED/signed-app-e2e-sbom-mutate.yaml"
-kubectl wait --for=condition=Ready pod -l app=e2e-signed-app -n e2e-sig-enforce --timeout=60s
-kubectl wait --for=condition=Ready pod -l app=e2e-signed-app -n e2e-sbom-mutate --timeout=60s
+kubectl rollout status deployment/e2e-signed-app -n e2e-sig-enforce --timeout=60s
+kubectl rollout status deployment/e2e-signed-app -n e2e-sbom-mutate --timeout=60s
 
 echo "==> Setup complete. Run: make test-e2e"
