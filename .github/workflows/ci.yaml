@@ -56,9 +56,10 @@ jobs:
 
       - name: Install UDS CLI
         run: |
-          curl -sL https://github.com/defenseunicorns/uds-cli/releases/latest/download/uds-cli_Linux_amd64 -o uds
+          UDS_VERSION=v0.30.1
+          curl -fL "https://github.com/defenseunicorns/uds-cli/releases/download/${UDS_VERSION}/uds-cli_${UDS_VERSION}_Linux_amd64" -o uds
           chmod +x uds
-          sudo mv uds /usr/local/bin/
+          ./uds version
 
       - name: Install dependencies
         run: cd policy && npm ci && cd .. && npm ci
