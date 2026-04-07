@@ -52,9 +52,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Install Zarf
-        uses: defenseunicorns/setup-zarf@v1
-        with:
-          version: v0.74.1
+        uses: defenseunicorns/setup-zarf@main
 
       - name: Log in to GHCR
         run: |
