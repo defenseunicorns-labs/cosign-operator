@@ -9,10 +9,9 @@
 - [x] Use validation warnings in the event mode is not enforce
 - [x] Bundle
 - [x] Add unit tests
-- [ ] add e2e tests
-- [ ] CI
-- [ ] tasks?
-- [ ] Clarify README.md
+- [x] add e2e tests
+- [x] Clarify README.md
+- [x] release-please
 - [x] Templates issue/pr
 - [x] Dependabot
 - [x] annotate pods
