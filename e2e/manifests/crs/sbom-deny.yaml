@@ -1,0 +1,12 @@
+apiVersion: policy.uds.dev/v1alpha1
+kind: SbomEnforcement
+metadata:
+  name: sbom-deny-test
+spec:
+  namespaces:
+    - e2e-sbom-deny
+  enforcementPolicy:
+    mode: enforce
+  deniedComponents:
+    - name: musl
+      versionRange: "*"

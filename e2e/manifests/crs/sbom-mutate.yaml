@@ -1,0 +1,12 @@
+apiVersion: policy.uds.dev/v1alpha1
+kind: SbomEnforcement
+metadata:
+  name: sbom-mutate-test
+spec:
+  namespaces:
+    - e2e-sbom-mutate
+  enforcementPolicy:
+    mode: enforce
+  deniedComponents:
+    - name: nonexistent-package-that-wont-match
+      versionRange: "*"

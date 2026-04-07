@@ -32,9 +32,18 @@ function loadPublicKey(): string | null {
   } catch {
     cachedPublicKey = process.env.COSIGN_PUBLIC_KEY ?? null;
   }
+  console.log(`Loaded cosign public key: ${cachedPublicKey}`);
   return cachedPublicKey;
 }
-
+loadPublicKey(); // Load at startup so it's ready for the first request
+loadZarfRegistryInfo();
+(async () => {
+  new Promise((resolve) => setTimeout(resolve, 1000)).then(() => {
+    console.log({ zarfRegistryInfo }, "Initial Zarf registry info:");
+    console.log({ SigConfig }, "Initial Signature Enforcement configs:");
+    console.log({ SbomConfig }, "Initial SBOM Enforcement configs:");
+  });
+})();
 /** Parse an image reference into registry, repository, tag, and digest. */
 function parseImageRef(imageRef: string): {
   registry: string;
@@ -137,13 +146,17 @@ async function registryConfig(
   const zarfInfo = await loadZarfRegistryInfo();
 
   if (zarfInfo && registry === zarfInfo.address) {
+    // Use in-cluster service name when running in-cluster, otherwise keep the original address
+    const inCluster = process.env.KUBERNETES_SERVICE_HOST;
     return {
       config: {
         allowHttp: true,
         username: zarfInfo.pullUsername,
         password: zarfInfo.pullPassword,
       },
-      resolvedRegistry: "zarf-docker-registry.zarf.svc.cluster.local:5000",
+      resolvedRegistry: inCluster
+        ? "zarf-docker-registry.zarf.svc.cluster.local:5000"
+        : zarfInfo.address,
     };
   }
 
@@ -169,7 +182,7 @@ When(a.Pod)
         new Date().toISOString(),
       );
     }
-    if(sbomMode) {
+    if (sbomMode) {
       request.SetAnnotation(
         "sbomenforcements.policy.uds.dev",
         new Date().toISOString(),
@@ -205,7 +218,7 @@ When(a.Pod)
 
     const errors: string[] = [];
     const warnings: string[] = [];
-
+    const allContainers = containers(request);
     // --- Signature verification ---
     if (sigMode) {
       const publicKey = loadPublicKey();
@@ -218,8 +231,6 @@ When(a.Pod)
           warnings.push(msg);
         }
       } else {
-        const allContainers = containers(request);
-
         for (const container of allContainers) {
           const image = container.image;
           if (!image) continue;
@@ -271,7 +282,6 @@ When(a.Pod)
     // --- SBOM verification ---
     if (sbomMode) {
       const denied = collectDeniedComponents(ns, SbomConfig);
-      const allContainers = containers(request);
 
       for (const container of allContainers) {
         const image = container.image;
@@ -329,76 +339,77 @@ When(a.Pod)
     return request.Approve(warnings.length > 0 ? warnings : undefined);
   });
 
-/**
- * Watch for changes to SignatureEnforcement and store them
- */
-When(SignatureEnforcement)
-  .IsCreatedOrUpdated()
-  .Reconcile(async (sigEnforce) => {
+if (
+  process.env.PEPR_WATCH_MODE === "false" ||
+  process.env.PEPR_MODE === "dev"
+) {
+  /**
+   * Watch for changes to SignatureEnforcement and store them
+   */
+  const sigWatch = K8s(SignatureEnforcement).Watch(async (sigEnforce) => {
     const generation = sigEnforce.metadata?.generation;
     const observed = sigEnforce.status?.observedGeneration;
-
+    SigConfig[sigEnforce.metadata!.name] = sigEnforce;
     if (!shouldUpdateStatus(generation, observed)) return;
 
     Log.info({ sigEnforce }, `Storing SignatureEnforcement`);
-    SigConfig[sigEnforce.metadata!.name] = sigEnforce;
 
     await K8s(SignatureEnforcement).PatchStatus({
       metadata: { name: sigEnforce.metadata!.name },
       status: buildReadyStatus(generation ?? 0),
     });
   });
+  sigWatch.start();
 
-/**
- * Watch for changes to SbomEnforcement and store them
- */
-When(SbomEnforcement)
-  .IsCreatedOrUpdated()
-  .Reconcile(async (sbomEnforce) => {
+  /**
+   * Watch for changes to SbomEnforcement and store them
+   */
+  const sbomWatch = K8s(SbomEnforcement).Watch(async (sbomEnforce) => {
     const generation = sbomEnforce.metadata?.generation;
     const observed = sbomEnforce.status?.observedGeneration;
-
-    if (!shouldUpdateStatus(generation, observed)) return;
-
-    Log.info({ sbomEnforce }, `Storing SbomEnforcement`);
     SbomConfig[sbomEnforce.metadata!.name] = sbomEnforce;
+    if (!shouldUpdateStatus(generation, observed)) return;
+    Log.info({ sbomEnforce }, `Storing SbomEnforcement`);
 
     await K8s(SbomEnforcement).PatchStatus({
       metadata: { name: sbomEnforce.metadata!.name },
       status: buildReadyStatus(generation ?? 0),
     });
   });
-
+  sbomWatch.start();
+}
 /**
  * Watch for deletions of SignatureEnforcement and remove them from storage
  */
 When(SignatureEnforcement)
   .IsDeleted()
-  .Validate(sigEnforce => {
+  .Validate((sigEnforce) => {
     Log.info({ sigEnforce }, `Removing SignatureEnforcement`);
     delete SigConfig[sigEnforce.Raw.metadata!.name];
     return sigEnforce.Approve();
-});
+  });
 
 /**
  * Watch for deletions of SbomEnforcement and remove them from storage
  */
 When(SbomEnforcement)
   .IsDeleted()
-  .Validate(sbomEnforce => {
+  .Validate((sbomEnforce) => {
     Log.info({ sbomEnforce }, `Removing SbomEnforcement`);
     delete SbomConfig[sbomEnforce.Raw.metadata!.name];
     return sbomEnforce.Approve();
-});
+  });
 
 /**
  * Ensure only one SignatureEnforcement exists per namespace, and reject if one already exists.
  */
 When(SignatureEnforcement)
   .IsCreated()
-  .Validate(sigEnforce => {
+  .Validate((sigEnforce) => {
     const requestedNs = sigEnforce.Raw.spec?.namespaces ?? [];
-    const conflicts = requestedNs.filter(ns => findMode(ns, SigConfig) !== null);
+    const conflicts = requestedNs.filter(
+      (ns) => findMode(ns, SigConfig) !== null,
+    );
 
     if (conflicts.length > 0) {
       return sigEnforce.Deny(
@@ -414,9 +425,11 @@ When(SignatureEnforcement)
  */
 When(SbomEnforcement)
   .IsCreated()
-  .Validate(sbomEnforce => {
+  .Validate((sbomEnforce) => {
     const requestedNs = sbomEnforce.Raw.spec?.namespaces ?? [];
-    const conflicts = requestedNs.filter(ns => findMode(ns, SbomConfig) !== null);
+    const conflicts = requestedNs.filter(
+      (ns) => findMode(ns, SbomConfig) !== null,
+    );
 
     if (conflicts.length > 0) {
       return sbomEnforce.Deny(

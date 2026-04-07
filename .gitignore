@@ -19,3 +19,9 @@ policy/dist/
 .claude/settings.local.json
 zarf-sbom/
 node_modules/
+
+# E2E generated artifacts
+e2e/sbom.spdx.json
+e2e/manifests/signed-app/zarf.yaml
+e2e/zarf-package-*.tar.zst
+e2e/resolved/

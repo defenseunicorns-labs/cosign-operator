@@ -1,0 +1,9 @@
+apiVersion: policy.uds.dev/v1alpha1
+kind: SignatureEnforcement
+metadata:
+  name: sig-reject-test
+spec:
+  namespaces:
+    - e2e-unsigned-reject
+  enforcementPolicy:
+    mode: enforce

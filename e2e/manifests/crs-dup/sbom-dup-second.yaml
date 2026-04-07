@@ -1,0 +1,12 @@
+apiVersion: policy.uds.dev/v1alpha1
+kind: SbomEnforcement
+metadata:
+  name: sbom-dup-second
+spec:
+  namespaces:
+    - e2e-dup
+  enforcementPolicy:
+    mode: enforce
+  deniedComponents:
+    - name: anything
+      versionRange: "*"

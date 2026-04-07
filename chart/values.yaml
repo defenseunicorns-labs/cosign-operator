@@ -54,9 +54,9 @@ rbac:
     - list
     - watch
 secrets:
-  apiPath: 'MWNiNmU5MTZhODg2MzhmMWRkNWU1NDY5Mjg2ZjhjMDVkZmY1MDE0ZTU1YzUxMzg4Zjg1Zjg1YTkxNjc4ODZhOA=='
+  apiPath: 'ZjQ4MWVkODIxOTVjNzFjNWRjMjc0YThlMmRhYzMzZmIwNWY3NGQ2YzA0ZTY4ODU1MjMyNjU1ZWFiZjc1ZjQxMQ=='
   cosignPublicKey: 'LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUZrd0V3WUhLb1pJemowQ0FRWUlLb1pJemowREFRY0RRZ0FFUUZ4Tm84dGxBRnVtMG9nUndyTXFJYmIvWHdiawozQytWaFhtck9ZdHdRYlJEVjFpUnR2ZlkrU2VGRHdKNWdHNTVLcVR2bE1QR09WOHFMMnMvTlI5cXZBPT0KLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0tCg=='
-hash: 'c6054e338e31a23f977671e71dfe8f7b3d8346327ddfb7cfbf65aa779a3dc91f'
+hash: '32b99536fe150fc4dd0b78cd5921420e8224f9a651b704e16aa997775cd45f1b'
 namespace:
   annotations: {}
   labels:
@@ -130,7 +130,7 @@ admission:
     labels: {}
     annotations: {}
 watcher:
-  enabled: true
+  enabled: false
   terminationGracePeriodSeconds: 5
   env:
     - name: 'PEPR_PRETTY_LOG'

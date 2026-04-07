@@ -6,7 +6,7 @@ COSIGN_PUB ?= cosign.pub
 
 FULL_IMAGE = $(REGISTRY)/$(IMAGE_NAME):$(IMAGE_TAG)
 
-.PHONY: all clean crds keys build push sign-and-package verify deploy-policy build-policy test-policy test-policy-positive test-policy-negative
+.PHONY: all clean crds keys build push sign-and-package verify deploy-policy build-policy test-policy test-policy-positive test-policy-negative test-e2e
 
 # Full workflow: build, push, sign, generate SBOM, attest, create Zarf package
 all: build push sign-and-package
@@ -58,6 +58,8 @@ sign-and-package:
 	echo "==> Creating Zarf package..."; \
 	zarf package create . --confirm --skip-sbom
 
+# kubectl run crane-check --rm -it --restart=Never -l zarf.dev/agent=ignore --image=gcr.io/go-containerregistry/crane -- ls --insecure -u zarf-pull -p 'jpo1v!V01ZdCMx1QPvDdJik7' zarf-docker-registry.zarf.svc.cluster.local:5000/e2e-app
+# kubectl run reg-check --rm -it --restart=Never -l zarf.dev/agent=ignore --image=curlimages/curl -- -s -u 'zarf-pull:jpo1v!V01ZdCMx1QPvDdJik7' http://zarf-docker-registry.zarf.svc.cluster.local:5000/v2/e2e-app/tags/list
 # Verify signature and SBOM attestation
 verify:
 	@set -euo pipefail; \
@@ -136,6 +138,14 @@ test-policy-negative:
 	@echo "    Cleaning up..."
 	@kubectl delete namespace unsigned-test --ignore-not-found 2>/dev/null || true
 	@rm -f test/unsigned/zarf-package-*.tar.zst
+
+# Setup e2e: registry, build, sign, package, namespaces, CRDs
+setup-e2e:
+	./e2e/setup.sh
+
+# Run e2e tests (run setup-e2e first)
+test-e2e:
+	npx vitest run --config e2e/vitest.config.ts
 
 # Remove generated files
 clean:

@@ -24,7 +24,7 @@ Demonstrates an end-to-end workflow for building, signing, and deploying contain
 ### 0. Generate TypeScript classes for CRDs
 
 ```bash
-make crds ()
+make crds
 ```
 
 ### 1. Generate cosign keys

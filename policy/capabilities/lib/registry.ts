@@ -73,19 +73,28 @@ export async function getManifest(
   config: RegistryConfig = {},
 ): Promise<OciManifest> {
   const url = `${baseUrl(registry, config)}/v2/${repo}/manifests/${reference}`;
-  const resp = await fetch(url, {
-    headers: {
-      ...authHeaders(config),
-      Accept: [
-        "application/vnd.oci.image.manifest.v1+json",
-        "application/vnd.docker.distribution.manifest.v2+json",
-      ].join(", "),
-    },
-  });
+  console.log(`[registry] getManifest url=${url} auth=${!!config.username}`);
+  let resp: Response;
+  try {
+    resp = await fetch(url, {
+      headers: {
+        ...authHeaders(config),
+        Accept: [
+          "application/vnd.oci.image.manifest.v1+json",
+          "application/vnd.docker.distribution.manifest.v2+json",
+        ].join(", "),
+      },
+    });
+  } catch (err) {
+    throw new Error(`Failed to fetch manifest ${repo}:${reference}: ${err}`);
+  }
 
+
+  console.log(`[registry] getManifest status=${resp.status} ${resp.statusText}`);
   if (!resp.ok) {
+    const body = await resp.text().catch(() => "");
     throw new Error(
-      `Failed to fetch manifest ${repo}:${reference}: ${resp.status} ${resp.statusText}`,
+      `Failed to fetch manifest ${repo}:${reference}: ${resp.status} ${resp.statusText} url=${url} body=${body}`,
     );
   }
 

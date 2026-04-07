@@ -27,6 +27,9 @@ spec:
         - name: Age
           type: date
           jsonPath: .metadata.creationTimestamp
+        - name: Namespaces
+          type: string
+          jsonPath: .spec.namespaces
       schema:
         openAPIV3Schema:
           type: object
