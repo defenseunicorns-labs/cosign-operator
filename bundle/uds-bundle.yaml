@@ -13,6 +13,6 @@ packages:
   #   repository: ghcr.io/defenseunicorns/packages/uds/core
   #   ref: 0.62.0-upstream
     
-  - name: image-signature-policy
+  - name: pepr-image-signature-policy
     path: ../
     ref: 0.0.1

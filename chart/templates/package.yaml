@@ -1,0 +1,31 @@
+{{- if .Values.package.enabled }}
+apiVersion: uds.dev/v1alpha1
+kind: Package
+metadata:
+  name: pepr-image-signature-policy
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    {{- toYaml .Values.package.annotations | nindent 4 }}
+  labels:
+    {{- toYaml .Values.package.labels | nindent 4 }}
+spec:
+  network:
+    serviceMesh:
+      mode: ambient
+    expose:
+      - service: pepr-image-signature-policy
+        selector:
+          app.kubernetes.io/name: pepr-image-signature-policy
+        gateway: tenant
+        host: pepr-image-signature-policy
+        port: {{ .Values.service.port }}
+    allow:
+      - direction: Ingress
+        selector:
+          app.kubernetes.io/name: pepr-image-signature-policy
+        remoteGenerated: IntraNamespace
+      - direction: Egress
+        selector:
+          app.kubernetes.io/name: pepr-image-signature-policy
+        remoteGenerated: IntraNamespace
+{{- end }}

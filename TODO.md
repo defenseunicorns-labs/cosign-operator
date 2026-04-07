@@ -7,11 +7,16 @@
 - [x] Scope RBAC
 - [x] Add CRD statuses
 - [x] Use validation warnings in the event mode is not enforce
-- [ ] Bundle
-- [ ] Add unit tests
+- [x] Bundle
+- [x] Add unit tests
 - [ ] add e2e tests
+- [ ] CI
+- [ ] tasks?
+- [ ] Clarify README.md
+- [x] Templates issue/pr
+- [x] Dependabot
 - [x] annotate pods
-- [ ] UDS Package
+- [x] UDS Package
 - [x] Implement SBOM Component Scanning against denied components
 - [x] Make sure public key is only read once
 - [x] Read Zarf registry info only once (Already caches)

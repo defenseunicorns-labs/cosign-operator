@@ -1,5 +1,4 @@
 # Generated files
-zarf.yaml
 manifests/deployment.yaml
 sbom.spdx.json
 zarf-package-*.tar.zst

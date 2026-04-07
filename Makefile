@@ -73,13 +73,28 @@ verify:
 build-policy:
 	cd policy && npx pepr build --zarf chart --custom-name cosign-hook
 	cp policy/dist/image-signature-policy-chart/Chart.yaml chart/
-# 	cp policy/dist/image-signature-policy-chart/values.yaml chart/
-	cp policy/dist/image-signature-policy-chart/values.schema.json chart/
+ 	#custom for this module - DO NOT DELETE - cp policy/dist/image-signature-policy-chart/values.yaml chart/ 
+ 	#custom for this module - DO NOT DELETE - cp policy/dist/image-signature-policy-chart/values.schema.json chart/
 	cp -r policy/dist/image-signature-policy-chart/charts chart/
+	mkdir -p /tmp/pepr-chart-preserve
+	cp chart/templates/cosign-secret.yaml chart/templates/package.yaml /tmp/pepr-chart-preserve/
 	cp -r policy/dist/image-signature-policy-chart/templates chart/
+	cp /tmp/pepr-chart-preserve/cosign-secret.yaml /tmp/pepr-chart-preserve/package.yaml chart/templates/
+	rm -rf /tmp/pepr-chart-preserve
+	@# Generate cosign keys if they don't already exist
+	@test -f $(COSIGN_KEY) || COSIGN_PASSWORD="" cosign generate-key-pair
+	@# Patch hash, apiPath, and cosignPublicKey into chart/values.yaml
+	@set -e; \
+	HASH=$$(grep "^hash:" policy/dist/image-signature-policy-chart/values.yaml | sed "s/hash: '//;s/'//;s/ //g"); \
+	API_PATH=$$(grep "apiPath:" policy/dist/image-signature-policy-chart/values.yaml | sed "s/.*apiPath: '//;s/'//"); \
+	COSIGN_B64=$$(base64 -w0 $(COSIGN_PUB)); \
+	sed -i "s|^hash: '.*'|hash: '$$HASH'|" chart/values.yaml; \
+	sed -i "s|apiPath: '.*'|apiPath: '$$API_PATH'|" chart/values.yaml; \
+	sed -i "s|cosignPublicKey: '.*'|cosignPublicKey: '$$COSIGN_B64'|" chart/values.yaml
 	cp policy/dist/zarf.yaml zarf.yaml
+	sed -i 's|localPath: image-signature-policy-chart|localPath: chart|' zarf.yaml
 	@echo "==> Built chart at chart/ (CRDs deploy first via Helm convention)"
-	@echo "==> Zarf config at zarf-policy.yaml"
+	@echo "==> Zarf config at zarf.yaml"
 
 # Deploy the Pepr image signature policy
 deploy-policy:

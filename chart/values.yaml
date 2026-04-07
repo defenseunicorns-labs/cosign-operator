@@ -1,4 +1,8 @@
 imagePullSecrets: []
+package:
+  enabled: false
+  labels: {}
+  annotations: {}
 additionalIgnoredNamespaces:
   - 'pepr-system'
   - 'kube-sytem'
@@ -6,23 +10,53 @@ additionalIgnoredNamespaces:
   - 'zarf'
 rbac:
   - apiGroups:
+      - pepr.dev
+    resources:
+      - peprstores
+    verbs:
+      - create
+      - get
+      - list
+      - patch
+      - watch
+  - apiGroups:
     - ""
     resources:
     - secrets
     verbs:
     - get
   - apiGroups:
-    - "policy.uds.dev"
+    - policy.uds.dev
     resources:
       - signatureenforcements
       - sbomenforcements
-    verbs: 
+    verbs:
     - get
     - list
     - watch
+  - apiGroups:
+      - policy.uds.dev
+    resources:
+      - signatureenforcements/status
+      - sbomenforcements/status
+    verbs:
+      - patch
+      - update
+  - apiGroups:
+    - apiextensions.k8s.io
+    resources:
+    - customresourcedefinitions
+    verbs:
+    - create
+    - get
+    - patch
+    - update
+    - list
+    - watch
 secrets:
-  apiPath: 'MTg1ZjMwMDk4ODU1MGRiY2RmNjFiYTkzYmMxMmZhN2ZjNTRlOWJkMzdhMTM5OGI4ZTk4Njc0YjQ5NTI0ZDcxMA=='
-hash: 'e48383dbca396c57ad9337b5f39bac61d3532328a43b2e54a87c4e60c686258a'
+  apiPath: 'MWNiNmU5MTZhODg2MzhmMWRkNWU1NDY5Mjg2ZjhjMDVkZmY1MDE0ZTU1YzUxMzg4Zjg1Zjg1YTkxNjc4ODZhOA=='
+  cosignPublicKey: 'LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUZrd0V3WUhLb1pJemowQ0FRWUlLb1pJemowREFRY0RRZ0FFUUZ4Tm84dGxBRnVtMG9nUndyTXFJYmIvWHdiawozQytWaFhtck9ZdHdRYlJEVjFpUnR2ZlkrU2VGRHdKNWdHNTVLcVR2bE1QR09WOHFMMnMvTlI5cXZBPT0KLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0tCg=='
+hash: 'c6054e338e31a23f977671e71dfe8f7b3d8346327ddfb7cfbf65aa779a3dc91f'
 namespace:
   annotations: {}
   labels:
@@ -87,7 +121,7 @@ admission:
     mountPath: /etc/cosign
     readOnly: true
   extraVolumes:
-  - name: cosign-keys
+  - name: cosign-key
     secret:
       secretName: cosign-public-key
   affinity: {}

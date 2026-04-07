@@ -1,7 +1,6 @@
 {
   "name": "image-signature-policy",
   "version": "0.0.1",
-  "type": "module",
   "description": "Pepr policy that enforces cosign image signature verification",
   "scripts": {
     "dev": "npx pepr dev",

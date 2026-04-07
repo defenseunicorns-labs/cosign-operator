@@ -10,6 +10,27 @@
           "type": "array",
           "items": {}
         },
+        "package": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "labels": {
+              "$ref": "#/definitions/Affinity"
+            },
+            "annotations": {
+              "$ref": "#/definitions/Affinity"
+            }
+          },
+          "required": [
+            "annotations",
+            "enabled",
+            "labels"
+          ],
+          "title": "Package"
+        },
         "additionalIgnoredNamespaces": {
           "type": "array",
           "items": {
@@ -440,10 +461,14 @@
       "properties": {
         "apiPath": {
           "type": "string"
+        },
+        "cosignPublicKey": {
+          "type": "string"
         }
       },
       "required": [
-        "apiPath"
+        "apiPath",
+        "cosignPublicKey"
       ],
       "title": "Secrets"
     }
