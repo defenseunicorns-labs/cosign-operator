@@ -1,161 +1,106 @@
-# Zarf SBOM + Image Signature Verification
+# Image Signature & SBOM Policy
 
-Demonstrates an end-to-end workflow for building, signing, and deploying container images with [Zarf](https://zarf.dev), then enforcing image signature verification at admission time with a [Pepr](https://pepr.dev) policy.
-
-## What's in the box
-
-- **Example app** -- a simple nginx container, cosign-signed with an SBOM attestation, packaged as a Zarf package
-- **Pepr admission policy** -- a ValidatingWebhook that verifies every pod's container images have a valid cosign signature from a trusted public key
-- **Make targets** for the full build/sign/deploy/test lifecycle
+A [Pepr](https://pepr.dev) admission controller that enforces cosign image signatures and SBOM component policies via Kubernetes CRDs. Packaged and deployed as a [UDS](https://github.com/defenseunicorns/uds-cli) bundle.
 
 ## Prerequisites
 
-- [Docker](https://docs.docker.com/get-docker/)
-- [Zarf](https://docs.zarf.dev/getting-started/)
-- [cosign](https://docs.sigstore.dev/cosign/system_config/installation/)
-- [crane](https://github.com/google/go-containerregistry/tree/main/cmd/crane)
-- [syft](https://github.com/anchore/syft)
-- [Node.js](https://nodejs.org/) (for Pepr)
-- A running Kubernetes cluster with Zarf initialized (e.g., [UDS Core](https://github.com/defenseunicorns/uds-core) on k3d)
-- A local OCI registry (default: `localhost:5000`)
+- [Docker](https://docs.docker.com/get-docker/) and [Node.js](https://nodejs.org/)
+- [cosign](https://docs.sigstore.dev/cosign/system_config/installation/), [crane](https://github.com/google/go-containerregistry/tree/main/cmd/crane), [syft](https://github.com/anchore/syft)
+- [k3d](https://k3d.io/), [Zarf](https://docs.zarf.dev/getting-started/), [UDS CLI](https://github.com/defenseunicorns/uds-cli)
 
-## Quick start
-
-### 0. Generate TypeScript classes for CRDs
+## Quick Start
 
 ```bash
-make crds
+# Generate cosign keys (if you don't have them)
+COSIGN_PASSWORD="" cosign generate-key-pair
+
+# Build the Pepr policy and Zarf package
+make build-policy
+zarf package create . --confirm --skip-sbom
+
+# Create the UDS bundle
+cd bundle && uds create --confirm && cd ..
+
+# Create a cluster and deploy
+k3d cluster create
+uds deploy bundle/uds-bundle-image-signature-policy-amd64-0.0.1.tar.zst --confirm
 ```
 
-### 1. Generate cosign keys
+## CRDs
 
-```sh
-COSIGN_PASSWORD="" make keys
+### SignatureEnforcement
+
+Enforces cosign image signature verification for pods in specified namespaces.
+
+```yaml
+apiVersion: policy.uds.dev/v1alpha1
+kind: SignatureEnforcement
+metadata:
+  name: example
+spec:
+  namespaces:
+    - my-app
+  enforcementPolicy:
+    mode: enforce  # or "warn"
 ```
 
-### 2. Build, sign, and package
+### SbomEnforcement
 
-This builds the container image, pushes it to the local registry, signs it with cosign, generates an SBOM with syft, attests the SBOM, and creates the Zarf package:
+Denies pods whose SBOM contains specified components.
 
-```sh
-make all
+```yaml
+apiVersion: policy.uds.dev/v1alpha1
+kind: SbomEnforcement
+metadata:
+  name: example
+spec:
+  namespaces:
+    - my-app
+  enforcementPolicy:
+    mode: enforce  # or "warn"
+  deniedComponents:
+    - name: log4j-core
+      versionRange: "<2.17.0"
 ```
 
-### 3. Deploy the Pepr policy
+**Enforcement modes:**
+- `enforce` -- reject pods that fail validation
+- `warn` -- admit pods but return warnings
 
-Installs the Pepr admission webhook, creates a Kubernetes Secret with the cosign public key, and mounts it into the Pepr controller:
+Only one policy of each type is allowed per namespace. Pods can opt out with the annotation `image-signature-policy/skip-verify: "true"`.
 
-```sh
-cd policy && npm install && cd ..
-make deploy-policy
+## Testing
+
+### Unit tests
+
+```bash
+cd policy && npm install && npm run test:unit
 ```
 
-### 4. Deploy the signed app
+### E2E tests
 
-```sh
-zarf package deploy zarf-package-example-signed-app-amd64-0.0.1.tar.zst --confirm
+Requires a running cluster with the UDS bundle deployed.
+
+```bash
+make setup-e2e
+make test-e2e
 ```
 
-### 5. Test the policy
+Run individual tests:
 
-Run both positive (signed image allowed) and negative (unsigned image rejected) tests:
-
-```sh
-make test-policy
+```bash
+npx vitest run --config e2e/vitest.config.ts -t "ignores pods"
+npx vitest run --config e2e/vitest.config.ts -t "annotates pods with signature"
+npx vitest run --config e2e/vitest.config.ts -t "rejects unsigned"
+npx vitest run --config e2e/vitest.config.ts -t "duplicate Signature"
 ```
 
-Or run them individually:
-
-```sh
-make test-policy-positive   # deploys the signed package -- should succeed
-make test-policy-negative   # deploys an unsigned nginx image -- should be rejected
-```
-
-## Make targets
+## Make Targets
 
 | Target | Description |
 |---|---|
-| `make all` | Build, push, sign, attest, and create the Zarf package |
-| `make keys` | Generate a cosign key pair |
-| `make build` | Build the container image |
-| `make push` | Push the image to the local registry |
-| `make sign-and-package` | Sign, generate SBOM, attest, render templates, create Zarf package |
-| `make verify` | Verify the cosign signature and SBOM attestation against the source registry |
-| `make deploy-policy` | Deploy the Pepr image signature policy to the cluster |
-| `make test-policy` | Run positive and negative policy tests |
-| `make test-policy-positive` | Deploy the signed Zarf package (should succeed) |
-| `make test-policy-negative` | Deploy an unsigned Zarf package (should be rejected) |
+| `make build-policy` | Build Pepr module, consolidate chart with CRDs |
+| `make crds` | Regenerate TypeScript classes from CRDs |
+| `make setup-e2e` | Build test images, sign, create packages, deploy test fixtures |
+| `make test-e2e` | Run e2e tests |
 | `make clean` | Remove generated files |
-
-## Configuration
-
-The Makefile supports the following variables:
-
-```sh
-REGISTRY=localhost:5000    # Source OCI registry
-IMAGE_NAME=example-app     # Image name
-IMAGE_TAG=latest           # Image tag
-COSIGN_KEY=cosign.key      # Path to cosign private key
-COSIGN_PUB=cosign.pub      # Path to cosign public key
-```
-
-Override them as needed:
-
-```sh
-make all REGISTRY=myregistry.example.com:5000
-```
-
-## How it works
-
-### Image signing
-
-The `sign-and-package` target:
-
-1. Resolves the image digest with `crane`
-2. Signs the image by digest with `cosign sign` using legacy tag-based storage (`.sig` tags) -- this is what Zarf expects
-3. Generates an SPDX SBOM with `syft`
-4. Attests the SBOM with `cosign attest` (stored as an `.att` tag)
-5. Renders `zarf.yaml` and deployment manifests from templates, pinning the image by digest
-6. Creates the Zarf package, including the image, signature, and attestation artifacts
-
-### Pepr policy
-
-The policy (`policy/`) is a Pepr module that registers a `ValidatingWebhook` on Pod create/update. For each container image:
-
-1. Parses the image reference from the pod spec
-2. Auto-discovers the Zarf internal registry address and credentials from the `zarf-state` secret (no manual configuration needed)
-3. Looks up the cosign `.sig` tag in the registry
-4. Verifies the signature against the trusted public key using ECDSA
-5. Approves the pod if all images pass, or denies with a detailed error message
-
-The public key is loaded from a mounted Kubernetes Secret at `/etc/cosign/cosign.pub`, with a fallback to the `COSIGN_PUBLIC_KEY` environment variable.
-
-Pods can opt out of verification with the annotation `image-signature-policy/skip-verify`.
-
-### Project structure
-
-```
-.
-├── Dockerfile                      # Example app (nginx-unprivileged)
-├── index.html                      # Example app content
-├── Makefile                        # Build/sign/deploy/test automation
-├── cosign.key / cosign.pub         # Cosign key pair (generated, git-ignored)
-├── zarf.yaml.tmpl                  # Zarf package template
-├── manifests/
-│   ├── deployment.yaml.tmpl        # Deployment template (image pinned by digest)
-│   └── service.yaml                # Service definition
-├── policy/                         # Pepr admission policy
-│   ├── pepr.ts                     # Pepr module entrypoint
-│   ├── package.json                # Pepr config and dependencies
-│   ├── tsconfig.json
-│   └── capabilities/
-│       ├── index.ts                # Capability definition
-│       ├── verify.ts               # Admission webhook logic
-│       └── lib/
-│           ├── cosign.ts           # Cosign signature verification
-│           └── registry.ts         # OCI registry client
-└── test/
-    └── unsigned/                   # Negative test fixture
-        ├── zarf.yaml               # Unsigned image Zarf package
-        └── deployment.yaml
-```
