@@ -100,7 +100,6 @@ npx vitest run --config e2e/vitest.config.ts -t "duplicate Signature"
 | Target | Description |
 |---|---|
 | `make build-policy` | Build Pepr module, consolidate chart with CRDs |
-| `make crds` | Regenerate TypeScript classes from CRDs |
 | `make setup-e2e` | Build test images, sign, create packages, deploy test fixtures |
 | `make test-e2e` | Run e2e tests |
 | `make clean` | Remove generated files |
