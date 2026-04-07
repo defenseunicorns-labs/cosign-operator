@@ -40,6 +40,11 @@ IMAGE_SBOM="$REGISTRY/$IMAGE_NAME:sha256-${DIGEST_HEX}.sbom"
 echo "==> Signing image..."
 COSIGN_PASSWORD="" cosign sign --key "$COSIGN_KEY" \
   --new-bundle-format=false --use-signing-config=false --tlog-upload=false \
+  "$IMAGE_REF" 2>/dev/null \
+|| COSIGN_PASSWORD="" cosign sign --key "$COSIGN_KEY" \
+  --tlog-upload=false \
+  "$IMAGE_REF" 2>/dev/null \
+|| COSIGN_PASSWORD="" cosign sign --key "$COSIGN_KEY" \
   "$IMAGE_REF"
 
 echo "==> Generating SBOM..."
