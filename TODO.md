@@ -4,9 +4,10 @@
 - [x] Generate TS Classeses
 - [x] Reconile CRDs
 - [x] Improve build for UDS Package to deploy CRDs first and not overwrite
-- [ ] Scope RBAC
+- [x] Scope RBAC
 - [x] Add CRD statuses
 - [x] Use validation warnings in the event mode is not enforce
+- [ ] Bundle
 - [ ] Add unit tests
 - [ ] add e2e tests
 - [x] annotate pods
