@@ -20,7 +20,7 @@ jobs:
           node-version: 20
 
       - name: Install dependencies
-        run: cd policy && npm ci
+        run: cd policy && npm i
 
       - name: Run unit tests
         run: cd policy && npm run test:unit
