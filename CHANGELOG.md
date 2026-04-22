@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.0.6](https://github.com/defenseunicorns-labs/pepr-zarf-cosign-validate-example/compare/v0.0.5...v0.0.6) (2026-04-22)
+
+
+### Bug Fixes
+
+* fat finger ([ce73fd6](https://github.com/defenseunicorns-labs/pepr-zarf-cosign-validate-example/commit/ce73fd6e54c6e29a4cc987ddc6271f9d6795ccde))
+* fat finger ([07f67fa](https://github.com/defenseunicorns-labs/pepr-zarf-cosign-validate-example/commit/07f67fa18de596b150dd0e4cf4321a57c1f22f88))
+
 ## [0.0.5](https://github.com/defenseunicorns-labs/pepr-zarf-cosign-validate-example/compare/v0.0.4...v0.0.5) (2026-04-22)
 
 
