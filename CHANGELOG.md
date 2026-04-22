@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.0.7](https://github.com/defenseunicorns-labs/pepr-zarf-cosign-validate-example/compare/v0.0.6...v0.0.7) (2026-04-22)
+
+
+### Bug Fixes
+
+* race condition ([074240a](https://github.com/defenseunicorns-labs/pepr-zarf-cosign-validate-example/commit/074240a91ae3d7fc5c8e3f00bf23f1f618c59145))
+* race condition ([2e29dbd](https://github.com/defenseunicorns-labs/pepr-zarf-cosign-validate-example/commit/2e29dbdc61ffa5ba363e356e0f9cfe3a7b916061))
+
 ## [0.0.6](https://github.com/defenseunicorns-labs/pepr-zarf-cosign-validate-example/compare/v0.0.5...v0.0.6) (2026-04-22)
 
 
