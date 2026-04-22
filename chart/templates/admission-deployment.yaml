@@ -9,7 +9,7 @@ metadata:
   labels:
     {{- toYaml .Values.admission.labels | nindent 4 }}
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: {{ .Values.uuid }}
