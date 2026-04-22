@@ -346,7 +346,8 @@ if (
   /**
    * Watch for changes to SignatureEnforcement and store them
    */
-  const sigWatch = K8s(SignatureEnforcement).Watch(async (sigEnforce) => {
+  const sigWatch = K8s(SignatureEnforcement).Watch(async (sigEnforce, phase) => {
+    if (phase === "DELETED") return; 
     const generation = sigEnforce.metadata?.generation;
     const observed = sigEnforce.status?.observedGeneration;
     SigConfig[sigEnforce.metadata!.name] = sigEnforce;
@@ -364,7 +365,8 @@ if (
   /**
    * Watch for changes to SbomEnforcement and store them
    */
-  const sbomWatch = K8s(SbomEnforcement).Watch(async (sbomEnforce) => {
+  const sbomWatch = K8s(SbomEnforcement).Watch(async (sbomEnforce, phase) => {
+    if (phase === "DELETED") return; 
     const generation = sbomEnforce.metadata?.generation;
     const observed = sbomEnforce.status?.observedGeneration;
     SbomConfig[sbomEnforce.metadata!.name] = sbomEnforce;
