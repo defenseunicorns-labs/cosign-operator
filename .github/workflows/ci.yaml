@@ -36,7 +36,7 @@ jobs:
           node-version: 24
 
       - name: Install cosign
-        uses: sigstore/cosign-installer@v3
+        uses: sigstore/cosign-installer@v4.1.1
 
       - name: Install crane
         run: |
