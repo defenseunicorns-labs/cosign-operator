@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.0.8](https://github.com/defenseunicorns-labs/pepr-zarf-cosign-validate-example/compare/v0.0.7...v0.0.8) (2026-06-01)
+
+
+### Features
+
+* antiaffinity and watch ([22c5f2a](https://github.com/defenseunicorns-labs/pepr-zarf-cosign-validate-example/commit/22c5f2ab4b413fb57820f46607325ffcacb2eb5c))
+* antiaffinity and watch ([6d53171](https://github.com/defenseunicorns-labs/pepr-zarf-cosign-validate-example/commit/6d531717b1a13c2d03b196d2f06f59dd049f90f5))
+
+
+### Bug Fixes
+
+* update version in bundle ([fac0ee2](https://github.com/defenseunicorns-labs/pepr-zarf-cosign-validate-example/commit/fac0ee2180d5dd2f6ee746eacb75f78b8089af06))
+* update version in zarf package ([e03eebd](https://github.com/defenseunicorns-labs/pepr-zarf-cosign-validate-example/commit/e03eebd5bef70ad5ed10b4623453b50ec3edb866))
+
 ## [0.0.7](https://github.com/defenseunicorns-labs/pepr-zarf-cosign-validate-example/compare/v0.0.6...v0.0.7) (2026-04-22)
 
 
