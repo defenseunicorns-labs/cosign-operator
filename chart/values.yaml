@@ -54,9 +54,9 @@ rbac:
     - list
     - watch
 secrets:
-  apiPath: 'OWVkNWFmZDQ4MzhiMWRjYWJmMGRiOWFmZTllZWNiNTNmMzUzNDg0ZjQwMjI1MWUzZTM1YzMwOGE2YjYzOGJjMQ=='
+  apiPath: 'NGZmNjVlODY5YTNhYTA3NjQwZGU4NWZjMWI4ZDQ4YzViM2IxNTNiNzUyODJiNTgzMjdkYzcyMjQ4YzI1ZmE5MA=='
   cosignPublicKey: 'LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUZrd0V3WUhLb1pJemowQ0FRWUlLb1pJemowREFRY0RRZ0FFUUZ4Tm84dGxBRnVtMG9nUndyTXFJYmIvWHdiawozQytWaFhtck9ZdHdRYlJEVjFpUnR2ZlkrU2VGRHdKNWdHNTVLcVR2bE1QR09WOHFMMnMvTlI5cXZBPT0KLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0tCg=='
-hash: '22bc4cc3b5f113a0c3fa27e92ab78ac2324b505a33c8cbc972496532a53204d6'
+hash: 'a501ea4ff79444cf73c87df432da14a289cd54ca252b870ae8a9a3b0d8ceaeaa'
 namespace:
   annotations: {}
   labels:
@@ -64,7 +64,7 @@ namespace:
 uuid: 'pepr-image-signature-policy'
 admission:
   enabled: true
-  antiAffinity: false
+  antiAffinity: true
   terminationGracePeriodSeconds: 5
   failurePolicy: 'Fail'
   env:

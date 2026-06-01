@@ -9,7 +9,7 @@ metadata:
   labels:
     {{- toYaml .Values.admission.labels | nindent 4 }}
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: {{ .Values.uuid }}
@@ -17,7 +17,7 @@ spec:
   template:
     metadata:
       annotations:
-        buildTimestamp: "1776886243715"
+        buildTimestamp: "1780070175395"
         {{- if .Values.admission.podAnnotations }}
         {{- toYaml .Values.admission.podAnnotations | nindent 8 }}
         {{- end }}

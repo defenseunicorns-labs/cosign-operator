@@ -3,7 +3,7 @@ metadata:
   name: pepr-image-signature-policy
   description: 'Pepr Module: Pepr policy that enforces cosign image signature verification'
   url: https://github.com/defenseunicorns/pepr
-  version: 0.0.1
+  version: 0.0.2
 components:
   - name: cosign-hook
     required: true
@@ -14,3 +14,4 @@ components:
         namespace: pepr-system
         version: 0.0.1
         localPath: chart
+        noWait: true

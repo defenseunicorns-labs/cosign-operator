@@ -379,28 +379,21 @@ if (
     });
   });
   sbomWatch.start();
-}
-/**
- * Watch for deletions of SignatureEnforcement and remove them from storage
- */
-When(SignatureEnforcement)
-  .IsDeleted()
-  .Validate((sigEnforce) => {
-    Log.info({ sigEnforce }, `Removing SignatureEnforcement`);
-    delete SigConfig[sigEnforce.Raw.metadata!.name];
-    return sigEnforce.Approve();
-  });
 
-/**
- * Watch for deletions of SbomEnforcement and remove them from storage
- */
-When(SbomEnforcement)
-  .IsDeleted()
-  .Validate((sbomEnforce) => {
+  const sbomDeleteWatch = K8s(SbomEnforcement).Watch(async (sbomEnforce, phase) => {
+    if (phase !== "DELETED") return;
     Log.info({ sbomEnforce }, `Removing SbomEnforcement`);
-    delete SbomConfig[sbomEnforce.Raw.metadata!.name];
-    return sbomEnforce.Approve();
+    delete SbomConfig[sbomEnforce.metadata!.name];
   });
+  sbomDeleteWatch.start();
+
+  const sigDeleteWatch = K8s(SignatureEnforcement).Watch(async (sigEnforce, phase) => {
+    if (phase !== "DELETED") return;
+    Log.info({ sigEnforce }, `Removing SignatureEnforcement`);
+    delete SigConfig[sigEnforce.metadata!.name];
+  });
+  sigDeleteWatch.start();
+}
 
 /**
  * Ensure only one SignatureEnforcement exists per namespace, and reject if one already exists.
