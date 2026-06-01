@@ -15,4 +15,4 @@ packages:
     
   - name: pepr-image-signature-policy
     path: ../
-    ref: 0.0.1
+    ref: 0.0.2
