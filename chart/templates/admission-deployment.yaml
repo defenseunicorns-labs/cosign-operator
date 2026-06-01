@@ -17,7 +17,7 @@ spec:
   template:
     metadata:
       annotations:
-        buildTimestamp: "1780070175395"
+        buildTimestamp: "1780332824335"
         {{- if .Values.admission.podAnnotations }}
         {{- toYaml .Values.admission.podAnnotations | nindent 8 }}
         {{- end }}

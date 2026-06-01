@@ -12,6 +12,6 @@ components:
     charts:
       - name: cosign-hook
         namespace: pepr-system
-        version: 0.0.1
+        version: 0.0.2
         localPath: chart
         noWait: true
