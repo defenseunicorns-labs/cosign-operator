@@ -54,9 +54,9 @@ rbac:
     - list
     - watch
 secrets:
-  apiPath: 'OWVkNWFmZDQ4MzhiMWRjYWJmMGRiOWFmZTllZWNiNTNmMzUzNDg0ZjQwMjI1MWUzZTM1YzMwOGE2YjYzOGJjMQ=='
-  cosignPublicKey: 'LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUZrd0V3WUhLb1pJemowQ0FRWUlLb1pJemowREFRY0RRZ0FFUUZ4Tm84dGxBRnVtMG9nUndyTXFJYmIvWHdiawozQytWaFhtck9ZdHdRYlJEVjFpUnR2ZlkrU2VGRHdKNWdHNTVLcVR2bE1QR09WOHFMMnMvTlI5cXZBPT0KLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0tCg=='
-hash: '22bc4cc3b5f113a0c3fa27e92ab78ac2324b505a33c8cbc972496532a53204d6'
+  apiPath: 'MjczMjMzYWRlOTU1YmFhZGMyYTU4YjQ1Y2I0YTUxNzk2ZGNiNzZiZDA4NjYxMDk3ZjdiNTIyY2QwZGVmNDE5ZQ=='
+  cosignPublicKey: 'LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUZrd0V3WUhLb1pJemowQ0FRWUlLb1pJemowREFRY0RRZ0FFSDdha2hEaDV6VFpzb2hic1FqSGFmWkt0MU03bgp3aXRiTThZQ3Jza0tzd3VzZUYxdmlJRGtHVHBxSzZsQ2x4VHBCSmFaZ1RXaXR3aS96RGdiaVhBRkJRPT0KLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0tCg=='
+hash: 'a501ea4ff79444cf73c87df432da14a289cd54ca252b870ae8a9a3b0d8ceaeaa'
 namespace:
   annotations: {}
   labels:
@@ -64,7 +64,7 @@ namespace:
 uuid: 'pepr-image-signature-policy'
 admission:
   enabled: true
-  antiAffinity: false
+  antiAffinity: true
   terminationGracePeriodSeconds: 5
   failurePolicy: 'Fail'
   env:

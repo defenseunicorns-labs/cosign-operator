@@ -23,7 +23,7 @@ cd bundle && uds create --confirm && cd ..
 
 # Create a cluster and deploy
 k3d cluster create
-uds deploy bundle/uds-bundle-image-signature-policy-amd64-0.0.1.tar.zst --confirm
+uds deploy bundle/uds-bundle-image-signature-policy-amd64-0.0.2.tar.zst --confirm
 ```
 
 ## CRDs

@@ -95,6 +95,8 @@ build-policy:
 	sed -i "s|cosignPublicKey: '.*'|cosignPublicKey: '$$COSIGN_B64'|" chart/values.yaml
 	cp policy/dist/zarf.yaml zarf.yaml
 	sed -i 's|localPath: image-signature-policy-chart|localPath: chart|' zarf.yaml
+	sed -i 's|0.0.1|0.0.2|' zarf.yaml
+	sed -i '0,/localPath: chart/{s|localPath: chart|localPath: chart\n        noWait: true|}' zarf.yaml
 	@echo "==> Built chart at chart/ (CRDs deploy first via Helm convention)"
 	@echo "==> Zarf config at zarf.yaml"
 

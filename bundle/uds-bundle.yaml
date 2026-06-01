@@ -2,7 +2,7 @@ kind: UDSBundle
 metadata:
   name: image-signature-policy
   description: Image signature/SBOM policy for UDS
-  version: 0.0.1
+  version: 0.0.2
 
 packages:
   - name: init
@@ -15,4 +15,4 @@ packages:
     
   - name: pepr-image-signature-policy
     path: ../
-    ref: 0.0.1
+    ref: 0.0.2
