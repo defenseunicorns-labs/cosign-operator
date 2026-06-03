@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.0.9](https://github.com/defenseunicorns-labs/cosign-operator/compare/v0.0.8...v0.0.9) (2026-06-03)
+
+
+### Features
+
+* breaking change SBOMEnforcement ([7ac8933](https://github.com/defenseunicorns-labs/cosign-operator/commit/7ac8933dd09fa865ddc18aa2b37f9a3600b6f137))
+* change sbom crd casing, add license, and update readme that it is not a supported product ([f520b23](https://github.com/defenseunicorns-labs/cosign-operator/commit/f520b23493daf89f745703e4db87702466748dad))
+
 ## [0.0.8](https://github.com/defenseunicorns-labs/pepr-zarf-cosign-validate-example/compare/v0.0.7...v0.0.8) (2026-06-01)
 
 
