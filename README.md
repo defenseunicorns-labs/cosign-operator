@@ -1,5 +1,8 @@
 # Image Signature & SBOM Policy
 
+**Note**:
+_This is not a supported product by Defense Unicorns._
+
 A [Pepr](https://pepr.dev) admission controller that enforces cosign image signatures and SBOM component policies via Kubernetes CRDs. Packaged and deployed as a [UDS](https://github.com/defenseunicorns/uds-cli) bundle.
 
 ## Prerequisites
