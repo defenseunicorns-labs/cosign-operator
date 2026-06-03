@@ -8,7 +8,7 @@ spec:
   names:
     plural: sbomenforcements
     singular: sbomenforcement
-    kind: SbomEnforcement
+    kind: SBOMEnforcement
     shortNames:
       - sbom
   versions:

@@ -1,5 +1,5 @@
 apiVersion: policy.uds.dev/v1alpha1
-kind: SbomEnforcement
+kind: SBOMEnforcement
 metadata:
   name: sbom-mutate-test
 spec:

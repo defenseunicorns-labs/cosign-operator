@@ -47,13 +47,13 @@ spec:
     mode: enforce  # or "warn"
 ```
 
-### SbomEnforcement
+### SBOMEnforcement
 
 Denies pods whose SBOM contains specified components.
 
 ```yaml
 apiVersion: policy.uds.dev/v1alpha1
-kind: SbomEnforcement
+kind: SBOMEnforcement
 metadata:
   name: example
 spec:

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { findMode, collectDeniedComponents } from "./policy.js";
-import type { SbomEnforcement } from "../generated/sbomenforcement-v1alpha1.js";
+import type { SBOMEnforcement } from "../generated/sbomenforcement-v1alpha1.js";
 
 function sigPolicy(namespaces: string[], mode: string) {
   return { spec: { namespaces, enforcementPolicy: { mode } } };
@@ -10,10 +10,10 @@ function sbomPolicy(
   namespaces: string[],
   mode: string,
   denied: { name: string; versionRange: string }[] = [],
-): SbomEnforcement {
+): SBOMEnforcement {
   return {
     spec: { namespaces, enforcementPolicy: { mode }, deniedComponents: denied },
-  } as SbomEnforcement;
+  } as SBOMEnforcement;
 }
 
 describe("findMode", () => {

@@ -13,7 +13,7 @@ import { resolveDigest, type RegistryConfig } from "./lib/registry.js";
 import { shouldUpdateStatus, buildReadyStatus } from "./lib/status.js";
 import { findMode, collectDeniedComponents } from "./lib/policy.js";
 import { fetchSbomComponents, checkDeniedComponents } from "./lib/sbom.js";
-import { SbomEnforcement } from "./generated/sbomenforcement-v1alpha1.js";
+import { SBOMEnforcement } from "./generated/sbomenforcement-v1alpha1.js";
 import { SignatureEnforcement } from "./generated/signatureenforcement-v1alpha1.js";
 
 const { containers } = sdk;
@@ -21,7 +21,7 @@ const { containers } = sdk;
 const SKIP_ANNOTATION = "image-signature-policy/skip-verify";
 const COSIGN_KEY_PATH = "/etc/cosign/cosign.pub";
 const SigConfig: Record<string, SignatureEnforcement> = {};
-const SbomConfig: Record<string, SbomEnforcement> = {};
+const SbomConfig: Record<string, SBOMEnforcement> = {};
 
 /** Cached cosign public key, loaded once at startup. */
 let cachedPublicKey: string | null | undefined;
@@ -192,7 +192,7 @@ When(a.Pod)
 
 /**
  * Validate that all container images in a Pod satisfy the enforcement policies
- * defined by SignatureEnforcement and SbomEnforcement CRs.
+ * defined by SignatureEnforcement and SBOMEnforcement CRs.
  *
  * - No matching CRDs for the namespace → approve (no policy).
  * - Mode "enforce" → deny on failure.
@@ -363,26 +363,26 @@ if (
   sigWatch.start();
 
   /**
-   * Watch for changes to SbomEnforcement and store them
+   * Watch for changes to SBOMEnforcement and store them
    */
-  const sbomWatch = K8s(SbomEnforcement).Watch(async (sbomEnforce, phase) => {
+  const sbomWatch = K8s(SBOMEnforcement).Watch(async (sbomEnforce, phase) => {
     if (phase === "DELETED") return; 
     const generation = sbomEnforce.metadata?.generation;
     const observed = sbomEnforce.status?.observedGeneration;
     SbomConfig[sbomEnforce.metadata!.name] = sbomEnforce;
     if (!shouldUpdateStatus(generation, observed)) return;
-    Log.info({ sbomEnforce }, `Storing SbomEnforcement`);
+    Log.info({ sbomEnforce }, `Storing SBOMEnforcement`);
 
-    await K8s(SbomEnforcement).PatchStatus({
+    await K8s(SBOMEnforcement).PatchStatus({
       metadata: { name: sbomEnforce.metadata!.name },
       status: buildReadyStatus(generation ?? 0),
     });
   });
   sbomWatch.start();
 
-  const sbomDeleteWatch = K8s(SbomEnforcement).Watch(async (sbomEnforce, phase) => {
+  const sbomDeleteWatch = K8s(SBOMEnforcement).Watch(async (sbomEnforce, phase) => {
     if (phase !== "DELETED") return;
-    Log.info({ sbomEnforce }, `Removing SbomEnforcement`);
+    Log.info({ sbomEnforce }, `Removing SBOMEnforcement`);
     delete SbomConfig[sbomEnforce.metadata!.name];
   });
   sbomDeleteWatch.start();
@@ -416,9 +416,9 @@ When(SignatureEnforcement)
   });
 
 /**
- * Ensure only one SbomEnforcement exists per namespace, and reject if one already exists.
+ * Ensure only one SBOMEnforcement exists per namespace, and reject if one already exists.
  */
-When(SbomEnforcement)
+When(SBOMEnforcement)
   .IsCreated()
   .Validate((sbomEnforce) => {
     const requestedNs = sbomEnforce.Raw.spec?.namespaces ?? [];
@@ -428,7 +428,7 @@ When(SbomEnforcement)
 
     if (conflicts.length > 0) {
       return sbomEnforce.Deny(
-        `An SbomEnforcement already exists for namespace(s): ${conflicts.join(", ")}`,
+        `An SBOMEnforcement already exists for namespace(s): ${conflicts.join(", ")}`,
       );
     }
 
