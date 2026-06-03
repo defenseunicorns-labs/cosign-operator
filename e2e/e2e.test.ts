@@ -75,7 +75,7 @@ describe("E2E Policy Enforcement", { timeout: 300_000 }, () => {
     expect(getPodAnnotation("e2e-sig-enforce", "app=e2e-signed-app", "signatureenforcements.policy.uds.dev")).not.toBe("");
   });
 
-  it("annotates pods with sbomenforcements.policy.uds.dev when SbomEnforcement exists", { timeout: 30000 }, () => {
+  it("annotates pods with sbomenforcements.policy.uds.dev when SBOMEnforcement exists", { timeout: 30000 }, () => {
     // Deployed by setup.sh via Zarf AFTER CRs were applied
     expect(podIsRunning("e2e-sbom-mutate", "app=e2e-signed-app")).toBe(true);
     expect(getPodAnnotation("e2e-sbom-mutate", "app=e2e-signed-app", "sbomenforcements.policy.uds.dev")).not.toBe("");
@@ -114,7 +114,7 @@ describe("E2E Policy Enforcement", { timeout: 300_000 }, () => {
     expect(result.toLowerCase()).toMatch(/already exists for namespace|denied/i);
   });
 
-  it("rejects a duplicate SbomEnforcement for the same namespace", { timeout: 10000 }, () => {
+  it("rejects a duplicate SBOMEnforcement for the same namespace", { timeout: 10000 }, () => {
     const result = kubectl(`apply -f ${CRS_DUP}/sbom-dup-second.yaml`, true);
     expect(result.toLowerCase()).toMatch(/already exists for namespace|denied/i);
   });

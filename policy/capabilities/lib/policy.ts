@@ -1,4 +1,4 @@
-import type { SbomEnforcement, DeniedComponent } from "../generated/sbomenforcement-v1alpha1.js";
+import type { SBOMEnforcement, DeniedComponent } from "../generated/sbomenforcement-v1alpha1.js";
 
 type HasNamespacesAndMode = {
   spec?: {
@@ -31,7 +31,7 @@ export function findMode(
  */
 export function collectDeniedComponents(
   namespace: string,
-  configs: Record<string, SbomEnforcement>,
+  configs: Record<string, SBOMEnforcement>,
 ): DeniedComponent[] {
   const denied: DeniedComponent[] = [];
   for (const config of Object.values(configs)) {

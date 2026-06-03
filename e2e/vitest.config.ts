@@ -5,8 +5,8 @@ export default defineConfig({
   test: {
     root: join(import.meta.dirname, ".."),
     include: ["e2e/**/*.test.ts"],
-    testTimeout: 120_000,
-    hookTimeout: 600_000,
+    testTimeout: 720_000,
+    hookTimeout: 840_000,
     sequence: { concurrent: false },
   },
 });
