@@ -54,9 +54,9 @@ rbac:
     - list
     - watch
 secrets:
-  apiPath: 'MjczMjMzYWRlOTU1YmFhZGMyYTU4YjQ1Y2I0YTUxNzk2ZGNiNzZiZDA4NjYxMDk3ZjdiNTIyY2QwZGVmNDE5ZQ=='
-  cosignPublicKey: 'LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUZrd0V3WUhLb1pJemowQ0FRWUlLb1pJemowREFRY0RRZ0FFSDdha2hEaDV6VFpzb2hic1FqSGFmWkt0MU03bgp3aXRiTThZQ3Jza0tzd3VzZUYxdmlJRGtHVHBxSzZsQ2x4VHBCSmFaZ1RXaXR3aS96RGdiaVhBRkJRPT0KLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0tCg=='
-hash: 'a501ea4ff79444cf73c87df432da14a289cd54ca252b870ae8a9a3b0d8ceaeaa'
+  apiPath: 'NjUxYTY3MjMyYzE1MmE3YzA4OTAyNmI5OWVhNDkwOWMyZjFkMmVmNmU3OGZiNTJmY2EzMTVmZDM4YzJlZjRmZg=='
+  cosignPublicKey: 'LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUZrd0V3WUhLb1pJemowQ0FRWUlLb1pJemowREFRY0RRZ0FFTWZXUFNtMFlhSzZLbkQ2dzhTTXBWemVlVnZrNQpnaVZZY0o2dlFXNWlVTDVlQ1QwN04venAvNHM5Y1IrcjJYdCtCNkRPdFZDcCtyY2NlNTlyczNBdm9nPT0KLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0tCg=='
+hash: '41a718158e2171d2ca83ca0c8917a0ed23be74ffc826675b4a9bb8f98bcba2fd'
 namespace:
   annotations: {}
   labels:
@@ -126,11 +126,16 @@ admission:
       secretName: cosign-public-key
   affinity:
     podAntiAffinity:
-      requiredDuringSchedulingIgnoredDuringExecution:
-        - labelSelector:
-            matchLabels:
-              app: pepr-image-signature-policy
-          topologyKey: kubernetes.io/hostname
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                    - pepr-image-signature-policy
+            topologyKey: kubernetes.io/hostname
   serviceMonitor:
     enabled: false
     labels: {}
