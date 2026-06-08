@@ -73,6 +73,22 @@ zarf package deploy "$SCRIPT_DIR"/zarf-package-e2e-signed-app-*.tar.zst --confir
 zarf package deploy "$SCRIPT_DIR"/zarf-package-e2e-unsigned-app-*.tar.zst --confirm --set NAMESPACE=e2e-unsigned-warn
 zarf package deploy "$SCRIPT_DIR"/zarf-package-e2e-skip-app-*.tar.zst --confirm --set NAMESPACE=e2e-skip
 
+# The kubectl-applied deployments (e2e-sig-enforce, e2e-sbom-mutate, etc.) get
+# their image rewritten to the Zarf internal registry by the Zarf agent, which
+# also injects an imagePullSecrets: [private-registry] reference. Unlike the
+# Zarf-deployed seed apps, that secret is never created in these namespaces, so
+# the authenticated pull fails with "no basic auth credentials" on any node that
+# doesn't already have the layer cached (i.e. anything past a single node).
+# Copy the secret from a namespace Zarf already populated into every test ns.
+echo "==> Copying Zarf registry pull secret into test namespaces..."
+DOCKERCFG=$(kubectl get secret private-registry -n e2e-no-policy -o jsonpath='{.data.\.dockerconfigjson}' | base64 -d)
+for ns in "${NAMESPACES[@]}"; do
+  kubectl create secret generic private-registry \
+    --type=kubernetes.io/dockerconfigjson \
+    --from-literal=.dockerconfigjson="$DOCKERCFG" \
+    -n "$ns" --dry-run=client -o yaml | kubectl apply -f -
+done
+
 echo "==> Resolving Zarf image refs for kubectl manifests..."
 SIGNED_IMAGE=$(kubectl get pod -n e2e-no-policy -l app=e2e-signed-app -o jsonpath='{.items[0].spec.containers[0].image}')
 UNSIGNED_IMAGE=$(kubectl get pod -n e2e-unsigned-warn -l app=e2e-unsigned-app -o jsonpath='{.items[0].spec.containers[0].image}')
