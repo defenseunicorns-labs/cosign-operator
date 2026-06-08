@@ -78,10 +78,10 @@ jobs:
         run: cd bundle && uds create --confirm
 
       - name: Create k3d cluster
-        run: k3d cluster create
+        run: k3d cluster create --agents 1
 
-      - name: Create second node
-        run: k3d node create worker --cluster k3s-default
+      - name: Wait for nodes ready
+        run: kubectl wait --for=condition=Ready nodes --all --timeout=360s
 
       - name: Deploy UDS bundle
         run: uds deploy bundle/uds-bundle-image-signature-policy-amd64-0.0.2.tar.zst --confirm
@@ -91,3 +91,27 @@ jobs:
 
       - name: Run e2e tests
         run: make test-e2e
+
+      - name: Diagnostics on failure
+        if: failure()
+        run: |
+          echo "::group::Nodes"
+          kubectl get nodes -o wide
+          echo "::endgroup::"
+          echo "::group::Pods (all namespaces)"
+          kubectl get pods -A -o wide
+          echo "::endgroup::"
+          echo "::group::Operator deployment"
+          kubectl describe deploy -n pepr-system || true
+          kubectl get pods -n pepr-system -o wide || true
+          echo "::endgroup::"
+          echo "::group::e2e-signed-app deployments"
+          for ns in e2e-no-policy e2e-sig-enforce e2e-sbom-mutate; do
+            echo "--- namespace: $ns ---"
+            kubectl describe deploy/e2e-signed-app -n "$ns" || true
+            kubectl get pods -n "$ns" -o wide || true
+          done
+          echo "::endgroup::"
+          echo "::group::Recent events"
+          kubectl get events -A --sort-by=.lastTimestamp | tail -80
+          echo "::endgroup::"
