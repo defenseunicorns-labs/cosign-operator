@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.0.10](https://github.com/defenseunicorns-labs/cosign-operator/compare/v0.0.9...v0.0.10) (2026-06-08)
+
+
+### Bug Fixes
+
+* update label selector for anti-affinity ([b875447](https://github.com/defenseunicorns-labs/cosign-operator/commit/b87544769d517d172f585dc1f4a8e7f359d557ea))
+* update label selector for anti-affinity ([326e76c](https://github.com/defenseunicorns-labs/cosign-operator/commit/326e76c4b30460db4d3b21478abd3854957e5aac))
+
 ## [0.0.9](https://github.com/defenseunicorns-labs/cosign-operator/compare/v0.0.8...v0.0.9) (2026-06-03)
 
 
