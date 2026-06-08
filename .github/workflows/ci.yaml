@@ -9,7 +9,7 @@ on:
 jobs:
   unit-tests:
     runs-on: ubuntu-latest
-    timeout-minutes: 360
+    timeout-minutes: 1200
     steps:
       - uses: actions/checkout@v6.0.2
 
@@ -79,6 +79,9 @@ jobs:
 
       - name: Create k3d cluster
         run: k3d cluster create
+
+      - name: Create second node
+        run: k3d node create worker --cluster k3s-default
 
       - name: Deploy UDS bundle
         run: uds deploy bundle/uds-bundle-image-signature-policy-amd64-0.0.2.tar.zst --confirm
