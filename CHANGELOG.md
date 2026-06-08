@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.0.11](https://github.com/defenseunicorns-labs/cosign-operator/compare/v0.0.10...v0.0.11) (2026-06-08)
+
+
+### Bug Fixes
+
+* soft affinity 2 ([94e378f](https://github.com/defenseunicorns-labs/cosign-operator/commit/94e378f5b75ddf8c93a31e85b57245fd7af62318))
+* soft affinity 2 ([71a0f11](https://github.com/defenseunicorns-labs/cosign-operator/commit/71a0f1177ea26d74dd7e11ee46ea1144ee49ebc7))
+
 ## [0.0.10](https://github.com/defenseunicorns-labs/cosign-operator/compare/v0.0.9...v0.0.10) (2026-06-08)
 
 
