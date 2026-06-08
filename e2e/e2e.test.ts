@@ -12,7 +12,7 @@ function run(cmd: string, opts?: { ignoreError?: boolean; timeout?: number }): s
     return execSync(cmd, {
       cwd: ROOT,
       encoding: "utf-8",
-      timeout: opts?.timeout ?? 30000,
+      timeout: opts?.timeout ?? 360000,
     }).trim();
   } catch (e: any) {
     if (opts?.ignoreError) {

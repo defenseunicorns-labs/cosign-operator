@@ -64,7 +64,7 @@ namespace:
 uuid: 'pepr-image-signature-policy'
 admission:
   enabled: true
-  antiAffinity: true
+  antiAffinity: false
   terminationGracePeriodSeconds: 5
   failurePolicy: 'Fail'
   env:
@@ -124,7 +124,13 @@ admission:
   - name: cosign-key
     secret:
       secretName: cosign-public-key
-  affinity: {}
+  affinity:
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchLabels:
+              app: pepr-image-signature-policy
+          topologyKey: kubernetes.io/hostname
   serviceMonitor:
     enabled: false
     labels: {}
