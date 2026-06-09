@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.0.12](https://github.com/defenseunicorns-labs/cosign-operator/compare/v0.0.11...v0.0.12) (2026-06-09)
+
+
+### Bug Fixes
+
+* daemonset for cosign ([b0746be](https://github.com/defenseunicorns-labs/cosign-operator/commit/b0746be4946734e3387b28a93649b554cdd9474c))
+* daemonset for cosign ([9cf7d4b](https://github.com/defenseunicorns-labs/cosign-operator/commit/9cf7d4b611ea841417cbfb0a5ee08e6bb13e5887))
+
 ## [0.0.11](https://github.com/defenseunicorns-labs/cosign-operator/compare/v0.0.10...v0.0.11) (2026-06-08)
 
 
