@@ -1,0 +1,62 @@
+{{- if .Values.admission.enabled }}
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ .Values.uuid }}
+  namespace: pepr-system
+  annotations:
+    {{- toYaml .Values.admission.annotations | nindent 4 }}
+  labels:
+    {{- toYaml .Values.admission.labels | nindent 4 }}
+spec:
+  updateStrategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: {{ .Values.uuid }}
+      pepr.dev/controller: admission
+  template:
+    metadata:
+      annotations:
+        buildTimestamp: "1780332824335"
+        {{- if .Values.admission.podAnnotations }}
+        {{- toYaml .Values.admission.podAnnotations | nindent 8 }}
+        {{- end }}
+      labels:
+        app: {{ .Values.uuid }}
+        pepr.dev/controller: admission
+        {{- if .Values.admission.podLabels }}
+        {{- toYaml .Values.admission.podLabels | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- if or .Values.admission.antiAffinity .Values.admission.affinity }}
+      affinity:
+      {{- if .Values.admission.antiAffinity }}
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: pepr.dev/controller
+                    operator: In
+                    values:
+                      - admission
+              topologyKey: "kubernetes.io/hostname"
+      {{- end }}
+      {{- if .Values.admission.affinity }}
+        {{- toYaml .Values.admission.affinity | nindent 8 }}
+      {{- end }}
+      {{- end }}
+      nodeSelector:
+        {{- toYaml .Values.admission.nodeSelector | nindent 8 }}
+      tolerations:
+        {{- toYaml .Values.admission.tolerations | nindent 8 }}
+      terminationGracePeriodSeconds: {{ .Values.admission.terminationGracePeriodSeconds }}
+      priorityClassName: system-node-critical
+      serviceAccountName: {{ .Values.uuid }}
+      containers:
+        - name: server
+          image: {{ .Values.admission.image }}
+          args:
+            - /app/node_modules/pepr/dist/controller.js
+            - {{ .Values.hash }}
+{{- end }}

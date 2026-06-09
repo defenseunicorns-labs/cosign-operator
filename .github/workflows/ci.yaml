@@ -14,6 +14,10 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
       - uses: actions/setup-node@v6.4.0
         with:
           node-version: 24
@@ -21,7 +25,10 @@ jobs:
       - name: Install dependencies
         run: cd policy && npm i
 
-      - name: Run unit tests
+      - name: Run Go tests
+        run: go test $(go list ./... | grep -v '/node_modules/')
+
+      - name: Run policy unit tests
         run: cd policy && npm run test:unit
 
   e2e-tests:
@@ -29,6 +36,10 @@ jobs:
     needs: unit-tests
     steps:
       - uses: actions/checkout@v6.0.3
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
 
       - uses: actions/setup-node@v6.4.0
         with:
@@ -67,9 +78,13 @@ jobs:
       - name: Generate cosign keys
         run: COSIGN_PASSWORD="" cosign generate-key-pair
 
+      - name: Build transform CLI
+        run: go build -trimpath -ldflags="-s -w" -o bin/transform ./cmd/transform
+
       - name: Build policy and Zarf package
         run: |
           make build-policy
+          ./bin/transform -input chart/templates/admission-deployment.yaml
           zarf package create . --confirm --skip-sbom
 
       - name: Create UDS bundle
@@ -99,8 +114,9 @@ jobs:
           echo "::group::Pods (all namespaces)"
           kubectl get pods -A -o wide
           echo "::endgroup::"
-          echo "::group::Operator deployment"
+          echo "::group::Operator workloads"
           kubectl describe deploy -n pepr-system || true
+          kubectl describe daemonset -n pepr-system || true
           kubectl get pods -n pepr-system -o wide || true
           echo "::endgroup::"
           echo "::group::e2e-signed-app deployments"
