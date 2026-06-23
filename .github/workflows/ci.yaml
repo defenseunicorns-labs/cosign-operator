@@ -81,6 +81,13 @@ jobs:
       - name: Build transform CLI
         run: go build -trimpath -ldflags="-s -w" -o bin/transform ./cmd/transform
 
+      - name: Login to UDS Registry 
+        run: |
+          zarf tools registry login \
+            --username "${{ secrets.UDS_REGISTRY_USERNAME }}" \
+            --password "${{ secrets.UDS_REGISTRY_PASSWORD }}" \
+            registry.defenseunicorns.com
+
       - name: install-oras
         env:
           ORAS_VERSION: v1.3.2
@@ -91,26 +98,10 @@ jobs:
             "https://github.com/oras-project/oras/releases/download/${ORAS_VERSION}/oras_${ORAS_VERSION#v}_${OS}_${ARCH}.tar.gz" \
             | tar -xz -C /usr/local/bin oras
           chmod +x /usr/local/bin/oras
-
-      - name: Prove credentials are present
-        env:
-          U: ${{ secrets.UDS_REGISTRY_USERNAME }}
-          P: ${{ secrets.UDS_REGISTRY_PASSWORD }}
-        run: |
-          echo "user length: ${#U}"
-          echo "pass length: ${#P}"
-          test -n "$U" && test -n "$P" || { echo "::error::registry secrets are EMPTY at runtime"; exit 1; }
-
-      - name: Login to UDS Registry and verify pull access
-        env:
-          U: ${{ secrets.UDS_REGISTRY_USERNAME }}
-          P: ${{ secrets.UDS_REGISTRY_PASSWORD }}
-        run: |
-          # oras login makes a real authenticated request, so empty/bad creds
-          # fail here with a clear message instead of silently writing an
-          # anonymous entry that breaks the pull later.
-          echo "$P" | oras login registry.defenseunicorns.com -u "$U" --password-stdin
-          oras manifest fetch registry.defenseunicorns.com/navy-canes/controller:v1.1.5 >/dev/null
+          zarf tools registry login \
+            --username "${{ secrets.UDS_REGISTRY_USERNAME }}" \
+            --password "${{ secrets.UDS_REGISTRY_PASSWORD }}" \
+            registry.defenseunicorns.com
           oras pull registry.defenseunicorns.com/navy-canes/controller:v1.1.5
 
       - name: Build policy and Zarf package
