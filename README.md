@@ -47,6 +47,35 @@ spec:
     mode: enforce  # or "warn"
 ```
 
+#### Trusting multiple public keys
+
+The operator trusts more than one cosign public key at a time, so applications
+signed with **different private keys** can each be admitted without sharing a
+single signing key. An image is admitted if its signature verifies against
+**any** trusted key.
+
+Trusted keys come from two sources, merged at runtime:
+
+- the base key mounted at `/etc/cosign/cosign.pub` (or the `COSIGN_PUBLIC_KEY`
+  env var), and
+- any `Secret` in the `pepr-system` namespace labeled
+  `pepr.dev/secret-type=cosign-public-key`.
+
+To add another trusted key, upload its public key as a labeled Secret:
+
+```bash
+kubectl create secret generic my-team-cosign-pub \
+  --namespace pepr-system \
+  --from-file=cosign.pub=my-team.pub \
+  --dry-run=client -o yaml \
+  | kubectl label --local -f - pepr.dev/secret-type=cosign-public-key -o yaml \
+  | kubectl apply -f -
+```
+
+A watch keeps the in-memory key array current — adding, updating, or deleting
+these Secrets immediately changes the set of trusted keys (a Secret may contain
+multiple PEM keys across its data entries).
+
 ### SBOMEnforcement
 
 Denies pods whose SBOM contains specified components.
@@ -95,6 +124,7 @@ Run individual tests:
 npx vitest run --config e2e/vitest.config.ts -t "ignores pods"
 npx vitest run --config e2e/vitest.config.ts -t "annotates pods with signature"
 npx vitest run --config e2e/vitest.config.ts -t "rejects unsigned"
+npx vitest run --config e2e/vitest.config.ts -t "second private key"
 npx vitest run --config e2e/vitest.config.ts -t "duplicate Signature"
 ```
 

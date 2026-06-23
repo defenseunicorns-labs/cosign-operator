@@ -8,6 +8,8 @@ test/unsigned/zarf-package-*.tar.zst
 # Cosign keys (never commit private keys)
 cosign.key
 cosign.pub
+cosign2.key
+cosign2.pub
 
 # Zarf cache
 .zarf-cache/
@@ -24,6 +26,8 @@ node_modules/
 
 # E2E generated artifacts
 e2e/sbom.spdx.json
+e2e/sbom2.spdx.json
 e2e/manifests/signed-app/zarf.yaml
+e2e/manifests/signed-app-2/zarf.yaml
 e2e/zarf-package-*.tar.zst
 e2e/resolved/

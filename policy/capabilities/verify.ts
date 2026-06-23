@@ -20,22 +20,62 @@ const { containers } = sdk;
 
 const SKIP_ANNOTATION = "image-signature-policy/skip-verify";
 const COSIGN_KEY_PATH = "/etc/cosign/cosign.pub";
+const PUBLIC_KEY_MARKER = "PUBLIC KEY";
 const SigConfig: Record<string, SignatureEnforcement> = {};
 const SbomConfig: Record<string, SBOMEnforcement> = {};
 
-/** Cached cosign public key, loaded once at startup. */
-let cachedPublicKey: string | null | undefined;
-function loadPublicKey(): string | null {
-  if (cachedPublicKey !== undefined) return cachedPublicKey;
+/**
+ * Trusted cosign public keys are sourced from two places and merged:
+ *  - the base key mounted from /etc/cosign/cosign.pub (or COSIGN_PUBLIC_KEY)
+ *  - any Secrets in pepr-system labeled pepr.dev/secret-type=cosign-public-key,
+ *    kept current by `publicKeyWatch` below (keyed by secret name)
+ *
+ * An image is admitted if its signature validates against ANY trusted key, so
+ * applications signed with different private keys can coexist without sharing a
+ * single private key — each just uploads its public key.
+ */
+let filePublicKey: string | null | undefined;
+const secretPublicKeys = new Map<string, string[]>();
+
+/** Load the base public key mounted from the filesystem (or env), once. */
+function loadFilePublicKey(): string | null {
+  if (filePublicKey !== undefined) return filePublicKey;
   try {
-    cachedPublicKey = readFileSync(COSIGN_KEY_PATH, "utf-8");
+    filePublicKey = readFileSync(COSIGN_KEY_PATH, "utf-8");
   } catch {
-    cachedPublicKey = process.env.COSIGN_PUBLIC_KEY ?? null;
+    filePublicKey = process.env.COSIGN_PUBLIC_KEY ?? null;
   }
-  console.log(`Loaded cosign public key: ${cachedPublicKey}`);
-  return cachedPublicKey;
+  return filePublicKey;
 }
-loadPublicKey(); // Load at startup so it's ready for the first request
+
+/** All trusted public keys: the mounted base key plus every watched secret key. */
+function getPublicKeys(): string[] {
+  const keys: string[] = [];
+  const base = loadFilePublicKey();
+  if (base) keys.push(base);
+  for (const list of secretPublicKeys.values()) keys.push(...list);
+  // De-duplicate by normalized PEM content.
+  return [...new Set(keys.map((k) => k.trim()).filter(Boolean))];
+}
+
+/** Extract PEM-encoded public keys from a Secret's (base64-encoded) data values. */
+function extractPublicKeys(secret: a.Secret): string[] {
+  const out: string[] = [];
+  for (const value of Object.values(secret.data ?? {})) {
+    if (!value) continue;
+    let decoded = "";
+    try {
+      decoded = Buffer.from(value, "base64").toString("utf-8");
+    } catch {
+      decoded = "";
+    }
+    if (decoded.includes(PUBLIC_KEY_MARKER)) out.push(decoded);
+    else if (value.includes(PUBLIC_KEY_MARKER)) out.push(value);
+  }
+  return out;
+}
+
+loadFilePublicKey(); // Load at startup so it's ready for the first request
 loadZarfRegistryInfo();
 (async () => {
   new Promise((resolve) => setTimeout(resolve, 1000)).then(() => {
@@ -221,8 +261,8 @@ When(a.Pod)
     const allContainers = containers(request);
     // --- Signature verification ---
     if (sigMode) {
-      const publicKey = loadPublicKey();
-      if (!publicKey) {
+      const publicKeys = getPublicKeys();
+      if (publicKeys.length === 0) {
         const msg =
           "Image signature policy misconfigured: no cosign public key found";
         if (sigMode === "enforce") {
@@ -261,7 +301,7 @@ When(a.Pod)
               resolvedRegistry,
               parsed.repo,
               digest,
-              publicKey,
+              publicKeys,
               config,
             );
 
@@ -394,18 +434,38 @@ if (
   });
   sigDeleteWatch.start();
 
-  const publicKeyWatch = K8s(kind.Secret).InNamespace("pepr-system").WithLabel("pepr.dev/secret-type", "cosign-public-key").Watch(async (secret, phase) => {
-    if (phase === "DELETED") {
-      Log.warn(`Cosign public key secret ${secret.metadata?.name} deleted, clearing cached public key`);
-      cachedPublicKey = null;
-      return;
-    }
-    if (phase === "ADDED" || phase === "MODIFIED") {
-      Log.info(`Cosign public key secret ${secret.metadata?.name} added/modified, reloading public key`);
-      cachedPublicKey = undefined; // force reload
-      loadPublicKey();
-    }
-  });
+  /**
+   * Watch cosign public key Secrets and keep the trusted-key array current.
+   * Each labeled Secret contributes one or more PEM public keys, tracked by
+   * secret name so additions, updates, and deletions stay in sync.
+   */
+  const publicKeyWatch = K8s(kind.Secret)
+    .InNamespace("pepr-system")
+    .WithLabel("pepr.dev/secret-type", "cosign-public-key")
+    .Watch(async (secret, phase) => {
+      const name = secret.metadata?.name;
+      if (!name) return;
+
+      if (phase === "DELETED") {
+        secretPublicKeys.delete(name);
+        Log.warn(
+          `Cosign public key secret ${name} deleted; ${getPublicKeys().length} trusted key(s) remain`,
+        );
+        return;
+      }
+
+      if (phase === "ADDED" || phase === "MODIFIED") {
+        const keys = extractPublicKeys(secret);
+        if (keys.length > 0) {
+          secretPublicKeys.set(name, keys);
+        } else {
+          secretPublicKeys.delete(name);
+        }
+        Log.info(
+          `Cosign public key secret ${name} ${phase.toLowerCase()}; ${getPublicKeys().length} trusted key(s) total`,
+        );
+      }
+    });
   publicKeyWatch.start();
 }
 

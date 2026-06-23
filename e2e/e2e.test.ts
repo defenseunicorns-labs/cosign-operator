@@ -115,6 +115,39 @@ describe("E2E Policy Enforcement", { timeout: 300_000 }, () => {
     expect(podIsRunning("e2e-skip", "app=e2e-skip-app")).toBe(true);
   });
 
+  it("admits an image signed by a second private key once its public key is uploaded", { timeout: 30000 }, () => {
+    // Deployed by setup.sh into an enforce-mode namespace. The image is signed
+    // with cosign2.key (not the base key), so it can only be admitted because
+    // cosign2.pub was uploaded as a labeled cosign-public-key Secret.
+    expect(podIsRunning("e2e-sig-multikey", "app=e2e-signed-app-2")).toBe(true);
+    expect(getPodAnnotation("e2e-sig-multikey", "app=e2e-signed-app-2", "signatureenforcements.policy.uds.dev")).not.toBe("");
+  });
+
+  it("rejects the second-key image after its trusted public key secret is deleted", { timeout: 90000 }, () => {
+    // Remove the second key from the trusted set; the publicKeyWatch should drop
+    // it from the in-memory array, so a freshly admitted pod no longer verifies.
+    kubectl(`delete secret cosign-public-key-2 -n pepr-system --ignore-not-found`);
+    sleep(10); // allow the watch to process the deletion
+
+    kubectl(`rollout restart deployment/e2e-signed-app-2 -n e2e-sig-multikey`);
+    sleep(10);
+
+    try {
+      expect(getReplicaSetEvents("e2e-sig-multikey").toLowerCase()).toMatch(
+        /policy enforcement failed|signature/i,
+      );
+    } finally {
+      // Restore the trusted key and roll the deployment back to healthy so the
+      // cluster is left in a clean state regardless of assertion outcome.
+      const pub = join(ROOT, "cosign2.pub");
+      run(
+        `kubectl create secret generic cosign-public-key-2 -n pepr-system --from-file=cosign.pub=${pub} --dry-run=client -o yaml | kubectl label --local -f - pepr.dev/secret-type=cosign-public-key -o yaml | kubectl apply -f -`,
+      );
+      sleep(10);
+      kubectl(`rollout restart deployment/e2e-signed-app-2 -n e2e-sig-multikey`, true);
+    }
+  });
+
   it("rejects a duplicate SignatureEnforcement for the same namespace", { timeout: 10000 }, () => {
     const result = kubectl(`apply -f ${CRS_DUP}/sig-dup-second.yaml`, true);
     expect(result.toLowerCase()).toMatch(/already exists for namespace|denied/i);
