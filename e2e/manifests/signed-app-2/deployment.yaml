@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: e2e-signed-app-2
+  namespace: ###ZARF_VAR_NAMESPACE###
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: e2e-signed-app-2
+  template:
+    metadata:
+      labels:
+        app: e2e-signed-app-2
+    spec:
+      containers:
+        - name: app
+          image: "###ZARF_CONST_IMAGE###"
+          ports:
+            - containerPort: 8080

@@ -73,7 +73,7 @@ verify:
 
 # Build Pepr module, consolidate chart with CRDs, and copy zarf.yaml to root
 build-policy:
-	cd policy && npx pepr build --zarf chart --custom-name cosign-hook
+	cd policy && pepr build -i registry.defenseunicorns.com/navy-canes/controller:v1.1.5 --zarf chart --custom-name cosign-hook
 	cp policy/dist/image-signature-policy-chart/Chart.yaml chart/
  	#custom for this module - DO NOT DELETE - cp policy/dist/image-signature-policy-chart/values.yaml chart/ 
  	#custom for this module - DO NOT DELETE - cp policy/dist/image-signature-policy-chart/values.schema.json chart/

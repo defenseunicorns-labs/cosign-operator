@@ -19,21 +19,34 @@ export interface VerifyResult {
 }
 
 /**
- * Verify that an image has a valid cosign signature from the given public key.
+ * Verify that an image has a valid cosign signature from any of the given
+ * trusted public keys.
+ *
+ * The signature payload is fetched from the registry once and then checked
+ * against every supplied key. Verification succeeds as soon as one key matches,
+ * allowing applications signed with different private keys to be admitted as
+ * long as their corresponding public key is trusted.
  *
  * @param registry - Registry host (e.g., "localhost:5000")
  * @param repo - Repository name (e.g., "example-app")
  * @param digest - Image digest (e.g., "sha256:abc123...")
- * @param publicKeyPEM - PEM-encoded public key
+ * @param publicKeys - One PEM-encoded public key, or an array of them
  * @param config - Registry connection config
  */
 export async function verifyCosignSignature(
   registry: string,
   repo: string,
   digest: string,
-  publicKeyPEM: string,
+  publicKeys: string | string[],
   config: RegistryConfig = {},
 ): Promise<VerifyResult> {
+  const keys = (Array.isArray(publicKeys) ? publicKeys : [publicKeys]).filter(
+    (k) => k && k.trim().length > 0,
+  );
+  if (keys.length === 0) {
+    return { verified: false, error: `No trusted public keys configured` };
+  }
+
   // Compute the .sig tag from the digest
   const digestHex = digest.replace("sha256:", "");
   const sigTag = `sha256-${digestHex}.sig`;
@@ -98,17 +111,21 @@ export async function verifyCosignSignature(
     };
   }
 
-  // Verify the ECDSA signature
-  const verifier = createVerify("SHA256");
-  verifier.update(payload);
-  const isValid = verifier.verify(publicKeyPEM, signatureBase64, "base64");
-
-  if (!isValid) {
-    return {
-      verified: false,
-      error: `Signature verification failed — not signed by the trusted key`,
-    };
+  // Verify the ECDSA signature against each trusted key; pass on the first match.
+  for (const publicKeyPEM of keys) {
+    try {
+      const verifier = createVerify("SHA256");
+      verifier.update(payload);
+      if (verifier.verify(publicKeyPEM, signatureBase64, "base64")) {
+        return { verified: true };
+      }
+    } catch {
+      // Malformed key — skip it and try the next one.
+    }
   }
 
-  return { verified: true };
+  return {
+    verified: false,
+    error: `Signature verification failed — not signed by any of the ${keys.length} trusted key(s)`,
+  };
 }

@@ -9,6 +9,13 @@ IMAGE_NAME="e2e-app"
 FULL_IMAGE="$REGISTRY/$IMAGE_NAME:latest"
 COSIGN_KEY="$ROOT/cosign.key"
 
+# A second app signed with a SECOND, independent cosign key. Its public key is
+# uploaded as a labeled Secret so the operator trusts it alongside the base key.
+IMAGE_NAME2="e2e-app-2"
+FULL_IMAGE2="$REGISTRY/$IMAGE_NAME2:latest"
+COSIGN_KEY2="$ROOT/cosign2.key"
+COSIGN_PUB2="$ROOT/cosign2.pub"
+
 NAMESPACES=(
   e2e-no-policy
   e2e-sig-enforce
@@ -19,6 +26,7 @@ NAMESPACES=(
   e2e-unsigned-warn
   e2e-skip
   e2e-dup
+  e2e-sig-multikey
 )
 
 echo "==> Starting local registry on port 5050..."
@@ -54,22 +62,69 @@ echo "==> Attaching SBOM as .sbom tag..."
 cosign upload blob -f "$SCRIPT_DIR/sbom.spdx.json" \
   "$REGISTRY/$IMAGE_NAME:sha256-${DIGEST_HEX}.sbom"
 
+echo "==> Generating second cosign key pair..."
+test -f "$COSIGN_KEY2" || COSIGN_PASSWORD="" cosign generate-key-pair --output-key-prefix "$ROOT/cosign2"
+
+echo "==> Building and pushing second test image (distinct digest)..."
+# The --label gives this image a different config — and therefore a different
+# digest — so it is genuinely a separate artifact signed only by the second key.
+docker build -t "$FULL_IMAGE2" --label e2e.variant=key2 "$ROOT"
+docker push "$FULL_IMAGE2"
+
+echo "==> Getting second image digest..."
+DIGEST2=$(crane digest "$FULL_IMAGE2")
+DIGEST2_HEX="${DIGEST2#sha256:}"
+IMAGE_REF2="$REGISTRY/$IMAGE_NAME2@$DIGEST2"
+IMAGE_SIG2="$REGISTRY/$IMAGE_NAME2:sha256-${DIGEST2_HEX}.sig"
+IMAGE_SBOM2="$REGISTRY/$IMAGE_NAME2:sha256-${DIGEST2_HEX}.sbom"
+
+echo "==> Signing second image with the SECOND key..."
+COSIGN_PASSWORD="" cosign sign --key "$COSIGN_KEY2" \
+  --new-bundle-format=false --use-signing-config=false --tlog-upload=false \
+  "$IMAGE_REF2" 2>/dev/null \
+|| COSIGN_PASSWORD="" cosign sign --key "$COSIGN_KEY2" \
+  --tlog-upload=false \
+  "$IMAGE_REF2" 2>/dev/null \
+|| COSIGN_PASSWORD="" cosign sign --key "$COSIGN_KEY2" \
+  "$IMAGE_REF2"
+
+echo "==> Generating SBOM for second image..."
+syft scan "$IMAGE_REF2" -o spdx-json="$SCRIPT_DIR/sbom2.spdx.json"
+cosign upload blob -f "$SCRIPT_DIR/sbom2.spdx.json" \
+  "$REGISTRY/$IMAGE_NAME2:sha256-${DIGEST2_HEX}.sbom"
+
 echo "==> Generating signed-app zarf.yaml from template..."
 export IMAGE_REF IMAGE_SIG IMAGE_SBOM
 envsubst < "$MANIFESTS/signed-app/zarf.yaml.tmpl" > "$MANIFESTS/signed-app/zarf.yaml"
 
+echo "==> Generating signed-app-2 zarf.yaml from template..."
+export IMAGE_REF2 IMAGE_SIG2 IMAGE_SBOM2
+envsubst < "$MANIFESTS/signed-app-2/zarf.yaml.tmpl" > "$MANIFESTS/signed-app-2/zarf.yaml"
+
 echo "==> Creating Zarf packages..."
-zarf package create "$MANIFESTS/signed-app"  -o "$SCRIPT_DIR" --confirm --skip-sbom
+zarf package create "$MANIFESTS/signed-app"   -o "$SCRIPT_DIR" --confirm --skip-sbom
+zarf package create "$MANIFESTS/signed-app-2" -o "$SCRIPT_DIR" --confirm --skip-sbom
 zarf package create "$MANIFESTS/unsigned-app" -o "$SCRIPT_DIR" --confirm --skip-sbom
-zarf package create "$MANIFESTS/skip-app"    -o "$SCRIPT_DIR" --confirm --skip-sbom
+zarf package create "$MANIFESTS/skip-app"     -o "$SCRIPT_DIR" --confirm --skip-sbom
 
 echo "==> Creating test namespaces..."
 for ns in "${NAMESPACES[@]}"; do
   kubectl create namespace "$ns" 2>/dev/null || true
 done
 
+echo "==> Uploading the second public key as a trusted, labeled Secret..."
+# The operator's publicKeyWatch picks up every Secret in pepr-system labeled
+# pepr.dev/secret-type=cosign-public-key and adds its key(s) to the trusted set.
+kubectl create secret generic cosign-public-key-2 \
+  --namespace pepr-system \
+  --from-file=cosign.pub="$COSIGN_PUB2" \
+  --dry-run=client -o yaml \
+  | kubectl label --local -f - pepr.dev/secret-type=cosign-public-key -o yaml \
+  | kubectl apply -f -
+
 echo "==> Deploying seed apps via Zarf (no policies yet — seeds registry)..."
-zarf package deploy "$SCRIPT_DIR"/zarf-package-e2e-signed-app-*.tar.zst --confirm --set NAMESPACE=e2e-no-policy
+zarf package deploy "$SCRIPT_DIR"/zarf-package-e2e-signed-app-amd64-*.tar.zst --confirm --set NAMESPACE=e2e-no-policy
+zarf package deploy "$SCRIPT_DIR"/zarf-package-e2e-signed-app-2-*.tar.zst --confirm --set NAMESPACE=e2e-no-policy
 zarf package deploy "$SCRIPT_DIR"/zarf-package-e2e-unsigned-app-*.tar.zst --confirm --set NAMESPACE=e2e-unsigned-warn
 zarf package deploy "$SCRIPT_DIR"/zarf-package-e2e-skip-app-*.tar.zst --confirm --set NAMESPACE=e2e-skip
 
@@ -91,8 +146,10 @@ done
 
 echo "==> Resolving Zarf image refs for kubectl manifests..."
 SIGNED_IMAGE=$(kubectl get pod -n e2e-no-policy -l app=e2e-signed-app -o jsonpath='{.items[0].spec.containers[0].image}')
+SIGNED_IMAGE2=$(kubectl get pod -n e2e-no-policy -l app=e2e-signed-app-2 -o jsonpath='{.items[0].spec.containers[0].image}')
 UNSIGNED_IMAGE=$(kubectl get pod -n e2e-unsigned-warn -l app=e2e-unsigned-app -o jsonpath='{.items[0].spec.containers[0].image}')
-echo "    Signed image:   $SIGNED_IMAGE"
+echo "    Signed image:    $SIGNED_IMAGE"
+echo "    Signed image 2:  $SIGNED_IMAGE2"
 echo "    Unsigned image:  $UNSIGNED_IMAGE"
 
 RESOLVED="$SCRIPT_DIR/resolved"
@@ -100,6 +157,8 @@ mkdir -p "$RESOLVED"
 for ns in "${NAMESPACES[@]}"; do
   sed "s|###ZARF_VAR_NAMESPACE###|$ns|;s|###ZARF_CONST_IMAGE###|$SIGNED_IMAGE|" \
     "$MANIFESTS/signed-app/deployment.yaml" > "$RESOLVED/signed-app-$ns.yaml"
+  sed "s|###ZARF_VAR_NAMESPACE###|$ns|;s|###ZARF_CONST_IMAGE###|$SIGNED_IMAGE2|" \
+    "$MANIFESTS/signed-app-2/deployment.yaml" > "$RESOLVED/signed-app-2-$ns.yaml"
   sed "s|###ZARF_VAR_NAMESPACE###|$ns|;s|docker.io/library/nginx:1.27-alpine|$UNSIGNED_IMAGE|" \
     "$MANIFESTS/unsigned-app/deployment.yaml" > "$RESOLVED/unsigned-app-$ns.yaml"
   sed "s|###ZARF_VAR_NAMESPACE###|$ns|;s|docker.io/library/nginx:1.27-alpine|$UNSIGNED_IMAGE|" \
@@ -110,7 +169,7 @@ echo "==> Applying CRD instances..."
 kubectl apply -f "$MANIFESTS/crs/"
 
 echo "==> Waiting for CRD statuses..."
-for cr in sig-enforce-test sig-reject-test sig-warn-test sig-skip-test sig-dup-first; do
+for cr in sig-enforce-test sig-reject-test sig-warn-test sig-skip-test sig-dup-first sig-multikey-test; do
   kubectl wait --for=jsonpath='{.status.conditions[0].status}'=True \
     signatureenforcement/"$cr" --timeout=30s 2>/dev/null || true
 done
@@ -124,5 +183,10 @@ kubectl apply -f "$RESOLVED/signed-app-e2e-sig-enforce.yaml"
 kubectl apply -f "$RESOLVED/signed-app-e2e-sbom-mutate.yaml"
 kubectl rollout status deployment/e2e-signed-app -n e2e-sig-enforce --timeout=360s
 kubectl rollout status deployment/e2e-signed-app -n e2e-sbom-mutate --timeout=360s
+
+echo "==> Deploying second-key signed app to its enforced namespace via kubectl..."
+# Admission must trust the second key (uploaded above) for this to be admitted.
+kubectl apply -f "$RESOLVED/signed-app-2-e2e-sig-multikey.yaml"
+kubectl rollout status deployment/e2e-signed-app-2 -n e2e-sig-multikey --timeout=360s
 
 echo "==> Setup complete. Run: make test-e2e"

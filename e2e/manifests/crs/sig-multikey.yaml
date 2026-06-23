@@ -1,0 +1,9 @@
+apiVersion: policy.uds.dev/v1alpha1
+kind: SignatureEnforcement
+metadata:
+  name: sig-multikey-test
+spec:
+  namespaces:
+    - e2e-sig-multikey
+  enforcementPolicy:
+    mode: enforce
