@@ -25,6 +25,8 @@ rbac:
     - secrets
     verbs:
     - get
+    - list
+    - watch
   - apiGroups:
     - policy.uds.dev
     resources:
@@ -54,9 +56,9 @@ rbac:
     - list
     - watch
 secrets:
-  apiPath: 'MjczMjMzYWRlOTU1YmFhZGMyYTU4YjQ1Y2I0YTUxNzk2ZGNiNzZiZDA4NjYxMDk3ZjdiNTIyY2QwZGVmNDE5ZQ=='
-  cosignPublicKey: 'LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUZrd0V3WUhLb1pJemowQ0FRWUlLb1pJemowREFRY0RRZ0FFSDdha2hEaDV6VFpzb2hic1FqSGFmWkt0MU03bgp3aXRiTThZQ3Jza0tzd3VzZUYxdmlJRGtHVHBxSzZsQ2x4VHBCSmFaZ1RXaXR3aS96RGdiaVhBRkJRPT0KLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0tCg=='
-hash: 'a501ea4ff79444cf73c87df432da14a289cd54ca252b870ae8a9a3b0d8ceaeaa'
+  apiPath: 'Yzk0NzE0NGUzMzczODM4OTBlZDc2MzdhM2U0ODEzZmY3YmQ4N2FmYWFkNWJhYWFhYzIzZjAzZmQxNTMzZGMwZg=='
+  cosignPublicKey: 'LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUZrd0V3WUhLb1pJemowQ0FRWUlLb1pJemowREFRY0RRZ0FFTWZXUFNtMFlhSzZLbkQ2dzhTTXBWemVlVnZrNQpnaVZZY0o2dlFXNWlVTDVlQ1QwN04venAvNHM5Y1IrcjJYdCtCNkRPdFZDcCtyY2NlNTlyczNBdm9nPT0KLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0tCg=='
+hash: 'd5e451aafbdaeae729d3048137234cb9890572b8a91a30f1c6ce32514085c204'
 namespace:
   annotations: {}
   labels:
@@ -73,7 +75,7 @@ admission:
     - name: 'LOG_LEVEL'
       value: 'info'
   envFrom: []
-  image: 'ghcr.io/defenseunicorns/pepr/controller:v1.1.5'
+  image: 'registry.defenseunicorns.com/navy-canes/controller:v1.2.2'
   annotations:
     pepr.dev/description: 'Pepr policy that enforces cosign image signature verification'
   labels:
@@ -81,10 +83,10 @@ admission:
     pepr.dev/controller: 'admission'
     pepr.dev/uuid: 'image-signature-policy'
   securityContext:
-    runAsUser: 65532
-    runAsGroup: 65532
+    runAsUser: 1000
+    runAsGroup: 1000
     runAsNonRoot: true
-    fsGroup: 65532
+    fsGroup: 1000
   readinessProbe:
     httpGet:
       path: '/healthz'
@@ -105,8 +107,8 @@ admission:
       memory: '512Mi'
       cpu: '500m'
   containerSecurityContext:
-    runAsUser: 65532
-    runAsGroup: 65532
+    runAsUser: 1000
+    runAsGroup: 1000
     runAsNonRoot: true
     allowPrivilegeEscalation: false
     capabilities:
@@ -149,7 +151,7 @@ watcher:
     - name: 'LOG_LEVEL'
       value: 'info'
   envFrom: []
-  image: 'ghcr.io/defenseunicorns/pepr/controller:v1.1.5'
+  image: 'registry.defenseunicorns.com/navy-canes/controller:v1.2.2'
   annotations:
     pepr.dev/description: 'Pepr policy that enforces cosign image signature verification'
   labels:
@@ -157,10 +159,10 @@ watcher:
     pepr.dev/controller: 'watcher'
     pepr.dev/uuid: 'image-signature-policy'
   securityContext:
-    runAsUser: 65532
-    runAsGroup: 65532
+    runAsUser: 1000
+    runAsGroup: 1000
     runAsNonRoot: true
-    fsGroup: 65532
+    fsGroup: 1000
   readinessProbe:
     httpGet:
       path: '/healthz'
@@ -181,8 +183,8 @@ watcher:
       memory: '512Mi'
       cpu: '500m'
   containerSecurityContext:
-    runAsUser: 65532
-    runAsGroup: 65532
+    runAsUser: 1000
+    runAsGroup: 1000
     runAsNonRoot: true
     allowPrivilegeEscalation: false
     capabilities:

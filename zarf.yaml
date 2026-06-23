@@ -8,7 +8,7 @@ components:
   - name: cosign-hook
     required: true
     images:
-      - ghcr.io/defenseunicorns/pepr/private/controller:v1.2.2
+      - registry.defenseunicorns.com/navy-canes/controller:v1.2.2
     charts:
       - name: cosign-hook
         namespace: pepr-system

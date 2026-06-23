@@ -6,7 +6,7 @@ COSIGN_PUB ?= cosign.pub
 
 FULL_IMAGE = $(REGISTRY)/$(IMAGE_NAME):$(IMAGE_TAG)
 
-.PHONY: all clean crds keys build push sign-and-package verify deploy-policy build-policy test-policy test-policy-positive test-policy-negative test-e2e
+.PHONY: all clean crds keys build push sign-and-package verify deploy-policy build-policy test-policy test-policy-positive test-policy-negative test-e2e ci-e2e setup-e2e
 
 # Full workflow: build, push, sign, generate SBOM, attest, create Zarf package
 all: build push sign-and-package
@@ -73,7 +73,7 @@ verify:
 
 # Build Pepr module, consolidate chart with CRDs, and copy zarf.yaml to root
 build-policy:
-	cd policy && pepr build -i registry.defenseunicorns.com/navy-canes/controller:v1.1.5 --zarf chart --custom-name cosign-hook
+	cd policy && npx pepr build -i registry.defenseunicorns.com/navy-canes/controller:v1.2.2 --zarf chart --custom-name cosign-hook
 	cp policy/dist/image-signature-policy-chart/Chart.yaml chart/
  	#custom for this module - DO NOT DELETE - cp policy/dist/image-signature-policy-chart/values.yaml chart/ 
  	#custom for this module - DO NOT DELETE - cp policy/dist/image-signature-policy-chart/values.schema.json chart/
@@ -96,6 +96,9 @@ build-policy:
 	cp policy/dist/zarf.yaml zarf.yaml
 	sed -i 's|localPath: image-signature-policy-chart|localPath: chart|' zarf.yaml
 	sed -i 's|0.0.1|0.0.2|' zarf.yaml
+	sed -i 's|ghcr.io/defenseunicorns/pepr/controller:v1.2.2|registry.defenseunicorns.com/navy-canes/controller:v1.2.2|' zarf.yaml.tmpl.release
+	sed -i 's|ghcr.io/defenseunicorns/pepr/controller:v1.2.2|registry.defenseunicorns.com/navy-canes/controller:v1.2.2|' chart/values.yaml
+	sed -i 's|65532|1000|' chart/values.yaml
 	sed -i '0,/localPath: chart/{s|localPath: chart|localPath: chart\n        noWait: true|}' zarf.yaml
 	@echo "==> Built chart at chart/ (CRDs deploy first via Helm convention)"
 	@echo "==> Zarf config at zarf.yaml"
@@ -140,6 +143,22 @@ test-policy-negative:
 	@echo "    Cleaning up..."
 	@kubectl delete namespace unsigned-test --ignore-not-found 2>/dev/null || true
 	@rm -f test/unsigned/zarf-package-*.tar.zst
+
+# Run the full e2e pipeline locally — the host-side equivalent of the CI
+# e2e-tests job. Assumes the prereq tools are installed (pepr, zarf, uds, k3d,
+# cosign, crane, syft) and that you are logged in to registry.defenseunicorns.com
+# so `uds deploy` can pull the private controller image.
+ci-e2e:
+	go build -trimpath -o bin/transform ./cmd/transform
+	$(MAKE) build-policy
+	./bin/transform -input chart/templates/admission-deployment.yaml
+	zarf package create . --confirm --skip-sbom
+	cd bundle && uds create --confirm
+	k3d cluster create
+	kubectl wait --for=condition=Ready nodes --all --timeout=360s
+	uds deploy bundle/uds-bundle-image-signature-policy-amd64-0.0.2.tar.zst --confirm
+	$(MAKE) setup-e2e
+	$(MAKE) test-e2e
 
 # Setup e2e: registry, build, sign, package, namespaces, CRDs
 setup-e2e:

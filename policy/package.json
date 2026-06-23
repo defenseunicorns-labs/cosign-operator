@@ -9,7 +9,7 @@
     "test:unit": "vitest run"
   },
   "dependencies": {
-    "pepr": "1.1.5"
+    "pepr": "1.2.2"
   },
   "pepr": {
     "name": "Image Signature Policy",

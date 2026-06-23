@@ -83,25 +83,29 @@ jobs:
 
       - name: Login to UDS Registry 
         run: |
-          echo "${{ secrets.UDS_REGISTRY_PASSWORD }}" | zarf tools registry login \
+          zarf tools registry login \
             --username "${{ secrets.UDS_REGISTRY_USERNAME }}" \
-            --password-stdin \
+            --password "${{ secrets.UDS_REGISTRY_PASSWORD }}" \
             registry.defenseunicorns.com
 
       - name: install-oras
         env:
-          ORAS_VERSION=v1.3.2
+          ORAS_VERSION: v1.3.2
+          ARCH: amd64
         run: |
           OS=$(uname -s | tr '[:upper:]' '[:lower:]')
           curl -fsSL \
-            "https://github.com/oras-project/oras/releases/download/${ORAS_VERSION}/oras_${ORAS_VERSION#v}_${OS}_${{ .variables.ARCH }}.tar.gz" \
+            "https://github.com/oras-project/oras/releases/download/${ORAS_VERSION}/oras_${ORAS_VERSION#v}_${OS}_${ARCH}.tar.gz" \
             | tar -xz -C /usr/local/bin oras
           chmod +x /usr/local/bin/oras
-          oras pull registry.defenseunicorns.com/navy-canes/controller:v1.1.5
+          zarf tools registry login \
+            --username "${{ secrets.UDS_REGISTRY_USERNAME }}" \
+            --password "${{ secrets.UDS_REGISTRY_PASSWORD }}" \
+            registry.defenseunicorns.com
+          oras pull registry.defenseunicorns.com/navy-canes/controller:v1.2.2
 
       - name: Build policy and Zarf package
         run: |
-          npm install -g pepr@1.1.5
           make build-policy
           ./bin/transform -input chart/templates/admission-deployment.yaml
           zarf package create . --confirm --skip-sbom
@@ -110,7 +114,7 @@ jobs:
         run: cd bundle && uds create --confirm
 
       - name: Create k3d cluster
-        run: k3d cluster create --agents 1
+        run: k3d cluster create
 
       - name: Wait for nodes ready
         run: kubectl wait --for=condition=Ready nodes --all --timeout=360s
