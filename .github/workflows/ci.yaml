@@ -98,6 +98,10 @@ jobs:
             "https://github.com/oras-project/oras/releases/download/${ORAS_VERSION}/oras_${ORAS_VERSION#v}_${OS}_${ARCH}.tar.gz" \
             | tar -xz -C /usr/local/bin oras
           chmod +x /usr/local/bin/oras
+          echo "${{ secrets.UDS_REGISTRY_PASSWORD }}" | oras login \
+            --username "${{ secrets.UDS_REGISTRY_USERNAME }}" \
+            --password-stdin \
+            registry.defenseunicorns.com
           oras pull registry.defenseunicorns.com/navy-canes/controller:v1.1.5
 
       - name: Build policy and Zarf package
