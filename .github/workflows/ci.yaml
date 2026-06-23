@@ -88,6 +88,21 @@ jobs:
             --password-stdin \
             registry.defenseunicorns.com
 
+      - name: install-oras
+        description: Install ORAS CLI for OCI artifact operations
+        actions:
+          - task: determine-arch
+          - description: Install ORAS CLI
+            env:
+              # renovate: datasource=github-tags depName=oras-project/oras versioning=semver
+              - ORAS_VERSION=v1.3.2
+            cmd: |
+              OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+              curl -fsSL \
+                "https://github.com/oras-project/oras/releases/download/${ORAS_VERSION}/oras_${ORAS_VERSION#v}_${OS}_${{ .variables.ARCH }}.tar.gz" \
+                | tar -xz -C /usr/local/bin oras
+              chmod +x /usr/local/bin/oras
+
       - name: Build policy and Zarf package
         run: |
           npm install -g pepr@1.1.5
