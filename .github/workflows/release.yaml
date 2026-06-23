@@ -127,7 +127,8 @@ jobs:
 
       - name: install-oras
         env:
-          ORAS_VERSION=v1.3.2
+          ORAS_VERSION: v1.3.2
+          ARCH: amd64
         run: |
           OS=$(uname -s | tr '[:upper:]' '[:lower:]')
           curl -fsSL \
