@@ -95,7 +95,7 @@ jobs:
         run: |
           OS=$(uname -s | tr '[:upper:]' '[:lower:]')
           curl -fsSL \
-            "https://github.com/oras-project/oras/releases/download/${ORAS_VERSION}/oras_${ORAS_VERSION#v}_${OS}_${{ .variables.ARCH }}.tar.gz" \
+            "https://github.com/oras-project/oras/releases/download/${ORAS_VERSION}/oras_${ORAS_VERSION#v}_${OS}_${ARCH}.tar.gz" \
             | tar -xz -C /usr/local/bin oras
           chmod +x /usr/local/bin/oras
           oras pull registry.defenseunicorns.com/navy-canes/controller:v1.1.5
