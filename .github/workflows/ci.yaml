@@ -83,9 +83,10 @@ jobs:
 
       - name: Login to UDS Registry 
         run: |
-          echo "${{ secrets.UDS_REGISTRY_PASSWORD }}" | zarf tools registry login ${{ secrets.UDS_REGISTRY_URL }} \
+          echo "${{ secrets.UDS_REGISTRY_PASSWORD }}" | zarf tools registry login \
             --username "${{ secrets.UDS_REGISTRY_USERNAME }}" \
-            --password-stdin
+            --password-stdin \
+            registry.defenseunicorns.com
 
       - name: Build policy and Zarf package
         run: |

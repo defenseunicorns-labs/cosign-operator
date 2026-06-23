@@ -120,9 +120,10 @@ jobs:
 
       - name: Login to UDS Registry 
         run: |
-          echo "${{ secrets.UDS_REGISTRY_PASSWORD }}" | zarf tools registry login ${{ secrets.UDS_REGISTRY_URL }} \
+          echo "${{ secrets.UDS_REGISTRY_PASSWORD }}" | zarf tools registry login \
             --username "${{ secrets.UDS_REGISTRY_USERNAME }}" \
-            --password-stdin
+            --password-stdin \
+            registry.defenseunicorns.com
 
       # - name: install-oras
       #   description: Install ORAS CLI for OCI artifact operations
