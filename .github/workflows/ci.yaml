@@ -83,6 +83,7 @@ jobs:
 
       - name: Build policy and Zarf package
         run: |
+          npm install pepr@1.1.5
           make build-policy
           ./bin/transform -input chart/templates/admission-deployment.yaml
           zarf package create . --confirm --skip-sbom
