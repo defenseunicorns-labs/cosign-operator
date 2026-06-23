@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.0.13](https://github.com/defenseunicorns-labs/cosign-operator/compare/v0.0.12...v0.0.13) (2026-06-23)
+
+
+### Features
+
+* multiple image public key verification ([d017e9e](https://github.com/defenseunicorns-labs/cosign-operator/commit/d017e9e4e872b82afeaa9434fca8a10a5f315d9d))
+* support multi-key ([986fac8](https://github.com/defenseunicorns-labs/cosign-operator/commit/986fac88fbda796f45ae56f49930207dd924ddca))
+
+
+### Bug Fixes
+
+* ci username ([e239fac](https://github.com/defenseunicorns-labs/cosign-operator/commit/e239fac5b7fb8fe0cfd737d0fa1eca0b94d1474e))
+* oras step ([0d49ee3](https://github.com/defenseunicorns-labs/cosign-operator/commit/0d49ee3235a4d3c50f28568d87475eadb5135da0))
+* oras step ([52fd5be](https://github.com/defenseunicorns-labs/cosign-operator/commit/52fd5be8143111ca8c6857caf78f55e16b3a907d))
+* oras step ([d790e62](https://github.com/defenseunicorns-labs/cosign-operator/commit/d790e62b3881ef61128a1c979d476442bf2c70e8))
+* oras step ([32b140f](https://github.com/defenseunicorns-labs/cosign-operator/commit/32b140f37f4b266d8115e9f71c1c1f0f192b9fd2))
+* oras step ([9e17ab0](https://github.com/defenseunicorns-labs/cosign-operator/commit/9e17ab0801b9b9be1f6db3baa5a2b3f9519c7880))
+* oras step ([ea7d193](https://github.com/defenseunicorns-labs/cosign-operator/commit/ea7d193627dbc7faee41d99844d3c7f3099fe9c9))
+* oras step ([bba22fc](https://github.com/defenseunicorns-labs/cosign-operator/commit/bba22fc34d49d28c23babf9f9209965e8234d03f))
+* oras step ([5fcfccc](https://github.com/defenseunicorns-labs/cosign-operator/commit/5fcfccc2cf301cc6ebc0a8735c40f6c32db729a8))
+* oras step ([c0272ae](https://github.com/defenseunicorns-labs/cosign-operator/commit/c0272aedeed8e404d6656eec116cdd368c9c6c6c))
+* oras step ([14f3942](https://github.com/defenseunicorns-labs/cosign-operator/commit/14f3942bbcb3d05f644e0aed668648900b72d6c3))
+* oras step ([b465206](https://github.com/defenseunicorns-labs/cosign-operator/commit/b465206530958783acc38259e74c6d57fd55268d))
+* oras step ([8375035](https://github.com/defenseunicorns-labs/cosign-operator/commit/8375035702b27bf129a89db573546ae152a9811c))
+
 ## [0.0.12](https://github.com/defenseunicorns-labs/cosign-operator/compare/v0.0.11...v0.0.12) (2026-06-09)
 
 
