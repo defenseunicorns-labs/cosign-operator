@@ -393,6 +393,20 @@ if (
     delete SigConfig[sigEnforce.metadata!.name];
   });
   sigDeleteWatch.start();
+
+  const publicKeyWatch = K8s(kind.Secret).InNamespace("pepr-system").WithLabel("pepr.dev/secret-type", "cosign-public-key").Watch(async (secret, phase) => {
+    if (phase === "DELETED") {
+      Log.warn(`Cosign public key secret ${secret.metadata?.name} deleted, clearing cached public key`);
+      cachedPublicKey = null;
+      return;
+    }
+    if (phase === "ADDED" || phase === "MODIFIED") {
+      Log.info(`Cosign public key secret ${secret.metadata?.name} added/modified, reloading public key`);
+      cachedPublicKey = undefined; // force reload
+      loadPublicKey();
+    }
+  });
+  publicKeyWatch.start();
 }
 
 /**
