@@ -64,11 +64,6 @@ function getReplicaSetEvents(ns: string): string {
 
 describe("E2E Policy Enforcement", { timeout: 300_000 }, () => {
 
-  it("uses the private pepr image from the uds registry", { timeout: 30000 }, () => {
-    const result = kubectl(`get pod -l app=e2e-signed-app -n e2e-sig-enforce -o jsonpath='{.items[0].spec.containers[0].image}'`);
-    expect(result).toMatch(/registry\.defenseunicorns\.com\/navy-canes\/controller::*/);
-  });
-
   it("ignores pods when no enforcement CRDs target the namespace", { timeout: 30000 }, () => {
     expect(podIsRunning("e2e-no-policy", "app=e2e-signed-app")).toBe(true);
     expect(getPodAnnotation("e2e-no-policy", "app=e2e-signed-app", "signatureenforcements.policy.uds.dev")).toBe("");

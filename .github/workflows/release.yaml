@@ -132,14 +132,14 @@ jobs:
             --username "${{ secrets.UDS_REGISTRY_USERNAME }}" \
             --password "${{ secrets.UDS_REGISTRY_PASSWORD }}" \
             registry.defenseunicorns.com
-          oras pull registry.defenseunicorns.com/navy-canes/controller:v1.1.5
+          oras pull registry.defenseunicorns.com/navy-canes/controller:v1.2.2
 
       - name: Build policy and transform chart
         run: |
           cd policy && npm ci
           cd ..
           npm ci
-          npm install -g pepr@1.1.5
+          npm install -g pepr@1.2.2
           go build -trimpath -ldflags="-s -w" -o bin/transform ./cmd/transform
           make build-policy
           ./bin/transform -input chart/templates/admission-deployment.yaml

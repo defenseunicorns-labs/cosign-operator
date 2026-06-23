@@ -1,6 +1,6 @@
 {{- if .Values.admission.enabled }}
 apiVersion: apps/v1
-kind: Deployment
+kind: DaemonSet
 metadata:
   name: {{ .Values.uuid }}
   namespace: pepr-system
@@ -9,7 +9,8 @@ metadata:
   labels:
     {{- toYaml .Values.admission.labels | nindent 4 }}
 spec:
-  replicas: 2
+  updateStrategy:
+    type: RollingUpdate
   selector:
     matchLabels:
       app: {{ .Values.uuid }}
@@ -17,7 +18,7 @@ spec:
   template:
     metadata:
       annotations:
-        buildTimestamp: "1780332824335"
+        buildTimestamp: "1782252354830"
         {{- if .Values.admission.podAnnotations }}
         {{- toYaml .Values.admission.podAnnotations | nindent 8 }}
         {{- end }}

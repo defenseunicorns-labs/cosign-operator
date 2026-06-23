@@ -102,11 +102,11 @@ jobs:
             --username "${{ secrets.UDS_REGISTRY_USERNAME }}" \
             --password "${{ secrets.UDS_REGISTRY_PASSWORD }}" \
             registry.defenseunicorns.com
-          oras pull registry.defenseunicorns.com/navy-canes/controller:v1.1.5
+          oras pull registry.defenseunicorns.com/navy-canes/controller:v1.2.2
 
       - name: Build policy and Zarf package
         run: |
-          npm install -g pepr@1.1.5
+          npm install -g pepr@1.2.2
           make build-policy
           ./bin/transform -input chart/templates/admission-deployment.yaml
           zarf package create . --confirm --skip-sbom
@@ -115,7 +115,7 @@ jobs:
         run: cd bundle && uds create --confirm
 
       - name: Create k3d cluster
-        run: k3d cluster create --agents 1
+        run: k3d cluster create
 
       - name: Wait for nodes ready
         run: kubectl wait --for=condition=Ready nodes --all --timeout=360s
