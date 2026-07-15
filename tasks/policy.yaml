@@ -8,7 +8,10 @@ tasks:
   - name: build
     description: Build Pepr module, consolidate chart, and render package config
     actions:
-      - cmd: |
+      - shell:
+          darwin: bash
+          linux: bash
+        cmd: |
           set -euo pipefail
 
           CHART_DIR="policy/dist/image-signature-policy-chart"
@@ -76,7 +79,10 @@ tasks:
   - name: deploy
     description: Deploy the Pepr image signature policy directly
     actions:
-      - cmd: |
+      - shell:
+          darwin: bash
+          linux: bash
+        cmd: |
           set -euo pipefail
 
           COSIGN_PUB="${COSIGN_PUB:-cosign.pub}"
@@ -105,7 +111,10 @@ tasks:
   - name: test-positive
     description: Verify a signed image is allowed
     actions:
-      - cmd: |
+      - shell:
+          darwin: bash
+          linux: bash
+        cmd: |
           echo "==> Test: Signed image should be ALLOWED"
           echo "    Deploying signed Zarf package..."
           zarf package deploy zarf-package-example-signed-app-*.tar.zst --confirm --timeout 60s
@@ -114,7 +123,10 @@ tasks:
   - name: test-negative
     description: Verify an unsigned image is rejected
     actions:
-      - cmd: |
+      - shell:
+          darwin: bash
+          linux: bash
+        cmd: |
           echo "==> Test: Unsigned image should be REJECTED"
           echo "    Building unsigned test Zarf package..."
           (cd test/unsigned && zarf package create . --confirm --skip-sbom -o .)
