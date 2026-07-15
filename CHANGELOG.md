@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.0.15](https://github.com/defenseunicorns-labs/cosign-operator/compare/v0.0.14...v0.0.15) (2026-07-15)
+
+
+### Bug Fixes
+
+* add uds cli ([2de342d](https://github.com/defenseunicorns-labs/cosign-operator/commit/2de342d5939b591a2fce8434ded31762e6921c94))
+* add uds cli ([9f5c72d](https://github.com/defenseunicorns-labs/cosign-operator/commit/9f5c72dd7730e4a273a3c85b169f6cf2ddb8d09d))
+
 ## [0.0.14](https://github.com/defenseunicorns-labs/cosign-operator/compare/v0.0.13...v0.0.14) (2026-07-15)
 
 
