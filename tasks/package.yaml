@@ -17,14 +17,20 @@ tasks:
   - name: deploy-bundle
     description: Deploy the UDS test bundle
     actions:
-      - cmd: |
+      - shell:
+          darwin: bash
+          linux: bash
+        cmd: |
           VERSION="${VERSION:-0.0.2}"
           uds deploy "bundle/uds-bundle-image-signature-policy-amd64-$VERSION.tar.zst" --confirm
 
   - name: render-release-zarf
     description: Render zarf.yaml from the release template
     actions:
-      - cmd: |
+      - shell:
+          darwin: bash
+          linux: bash
+        cmd: |
           set -euo pipefail
 
           VERSION="${VERSION:-0.0.2}" envsubst < zarf.yaml.tmpl.release > zarf.yaml
@@ -34,7 +40,10 @@ tasks:
   - name: clean
     description: Remove generated build and test artifacts
     actions:
-      - cmd: |
+      - shell:
+          darwin: bash
+          linux: bash
+        cmd: |
           rm -f zarf.yaml manifests/deployment.yaml sbom.spdx.json
           rm -f zarf-package-*.tar.zst
           rm -f test/unsigned/zarf-package-*.tar.zst

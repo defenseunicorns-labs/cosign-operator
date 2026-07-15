@@ -14,7 +14,10 @@ tasks:
   - name: build
     description: Build the example app container image
     actions:
-      - cmd: |
+      - shell:
+          darwin: bash
+          linux: bash
+        cmd: |
           REGISTRY="${REGISTRY:-localhost:5000}"
           IMAGE_NAME="${IMAGE_NAME:-example-app}"
           IMAGE_TAG="${IMAGE_TAG:-latest}"
@@ -23,7 +26,10 @@ tasks:
   - name: push
     description: Push the example app container image
     actions:
-      - cmd: |
+      - shell:
+          darwin: bash
+          linux: bash
+        cmd: |
           REGISTRY="${REGISTRY:-localhost:5000}"
           IMAGE_NAME="${IMAGE_NAME:-example-app}"
           IMAGE_TAG="${IMAGE_TAG:-latest}"
@@ -32,7 +38,10 @@ tasks:
   - name: sign-and-package
     description: Sign, attest, render, and package the example app
     actions:
-      - cmd: |
+      - shell:
+          darwin: bash
+          linux: bash
+        cmd: |
           set -euo pipefail
 
           REGISTRY="${REGISTRY:-localhost:5000}"
@@ -74,7 +83,10 @@ tasks:
   - name: verify
     description: Verify the example app signature and SBOM attestation
     actions:
-      - cmd: |
+      - shell:
+          darwin: bash
+          linux: bash
+        cmd: |
           set -euo pipefail
 
           REGISTRY="${REGISTRY:-localhost:5000}"
