@@ -1,0 +1,94 @@
+tasks:
+  - name: all
+    description: Build, push, sign, and package the example app
+    actions:
+      - task: build
+      - task: push
+      - task: sign-and-package
+
+  - name: keys
+    description: Generate a cosign key pair
+    actions:
+      - cmd: cosign generate-key-pair
+
+  - name: build
+    description: Build the example app container image
+    actions:
+      - cmd: |
+          REGISTRY="${REGISTRY:-localhost:5000}"
+          IMAGE_NAME="${IMAGE_NAME:-example-app}"
+          IMAGE_TAG="${IMAGE_TAG:-latest}"
+          docker build -t "$REGISTRY/$IMAGE_NAME:$IMAGE_TAG" .
+
+  - name: push
+    description: Push the example app container image
+    actions:
+      - cmd: |
+          REGISTRY="${REGISTRY:-localhost:5000}"
+          IMAGE_NAME="${IMAGE_NAME:-example-app}"
+          IMAGE_TAG="${IMAGE_TAG:-latest}"
+          docker push "$REGISTRY/$IMAGE_NAME:$IMAGE_TAG"
+
+  - name: sign-and-package
+    description: Sign, attest, render, and package the example app
+    actions:
+      - cmd: |
+          set -euo pipefail
+
+          REGISTRY="${REGISTRY:-localhost:5000}"
+          IMAGE_NAME="${IMAGE_NAME:-example-app}"
+          IMAGE_TAG="${IMAGE_TAG:-latest}"
+          COSIGN_KEY="${COSIGN_KEY:-cosign.key}"
+          FULL_IMAGE="$REGISTRY/$IMAGE_NAME:$IMAGE_TAG"
+
+          DIGEST="$(crane digest "$FULL_IMAGE")"
+          DIGEST_HEX="$(printf '%s\n' "$DIGEST" | cut -d: -f2)"
+          IMAGE_REF="$REGISTRY/$IMAGE_NAME@$DIGEST"
+          IMAGE_SIG="$REGISTRY/$IMAGE_NAME:sha256-$DIGEST_HEX.sig"
+          IMAGE_ATT="$REGISTRY/$IMAGE_NAME:sha256-$DIGEST_HEX.att"
+          IMAGE_NAME_TAGGED="$FULL_IMAGE"
+
+          echo "==> Digest: $DIGEST"
+          echo "==> Signing image..."
+          COSIGN_PASSWORD="" cosign sign --key "$COSIGN_KEY" \
+            --new-bundle-format=false --use-signing-config=false --tlog-upload=false "$IMAGE_REF"
+
+          echo "==> Generating SBOM with syft..."
+          syft scan "$IMAGE_REF" -o spdx-json=sbom.spdx.json
+
+          echo "==> Attesting SBOM..."
+          COSIGN_PASSWORD="" cosign attest --key "$COSIGN_KEY" --predicate sbom.spdx.json \
+            --type spdxjson --new-bundle-format=false --use-signing-config=false --tlog-upload=false "$IMAGE_REF"
+
+          echo "==> Generating zarf.yaml and manifests..."
+          export IMAGE_REF IMAGE_SIG IMAGE_ATT IMAGE_NAME_TAGGED
+          envsubst < zarf.yaml.tmpl > zarf.yaml
+          envsubst < manifests/deployment.yaml.tmpl > manifests/deployment.yaml
+
+          echo "==> Generated zarf.yaml:"
+          cat zarf.yaml
+
+          echo "==> Creating Zarf package..."
+          zarf package create . --confirm --skip-sbom
+
+  - name: verify
+    description: Verify the example app signature and SBOM attestation
+    actions:
+      - cmd: |
+          set -euo pipefail
+
+          REGISTRY="${REGISTRY:-localhost:5000}"
+          IMAGE_NAME="${IMAGE_NAME:-example-app}"
+          IMAGE_TAG="${IMAGE_TAG:-latest}"
+          COSIGN_PUB="${COSIGN_PUB:-cosign.pub}"
+          FULL_IMAGE="$REGISTRY/$IMAGE_NAME:$IMAGE_TAG"
+
+          DIGEST="$(crane digest "$FULL_IMAGE")"
+          IMAGE_REF="$REGISTRY/$IMAGE_NAME@$DIGEST"
+
+          echo "==> Verifying signature..."
+          cosign verify --key "$COSIGN_PUB" --insecure-ignore-tlog=true "$IMAGE_REF"
+
+          echo "==> Verifying SBOM attestation..."
+          cosign verify-attestation --key "$COSIGN_PUB" --type spdxjson \
+            --insecure-ignore-tlog=true "$IMAGE_REF"

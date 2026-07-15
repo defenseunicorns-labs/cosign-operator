@@ -1,0 +1,134 @@
+tasks:
+  - name: crds
+    description: Generate TypeScript classes from CRDs
+    actions:
+      - cmd: npx kubernetes-fluent-client crd chart/crds/signature.crd.yaml policy/capabilities/generated/
+      - cmd: npx kubernetes-fluent-client crd chart/crds/sbom.crd.yaml policy/capabilities/generated/
+
+  - name: build
+    description: Build Pepr module, consolidate chart, and render package config
+    actions:
+      - cmd: |
+          set -euo pipefail
+
+          CHART_DIR="policy/dist/image-signature-policy-chart"
+          PRESERVE_DIR="$(mktemp -d)"
+          PEPR_CONTROLLER_IMAGE="${PEPR_CONTROLLER_IMAGE:-registry.defenseunicorns.com/navy-canes/controller:v1.2.2}"
+          VERSION="${VERSION:-0.0.2}"
+          COSIGN_KEY="${COSIGN_KEY:-cosign.key}"
+          COSIGN_PUB="${COSIGN_PUB:-cosign.pub}"
+
+          cd policy
+          npx pepr build -i "$PEPR_CONTROLLER_IMAGE" --zarf chart --custom-name cosign-hook
+          cd ..
+
+          cp "$CHART_DIR/Chart.yaml" chart/
+          if [ -d "$CHART_DIR/charts" ]; then
+            rm -rf chart/charts
+            cp -r "$CHART_DIR/charts" chart/
+          fi
+
+          cp chart/templates/cosign-secret.yaml chart/templates/package.yaml "$PRESERVE_DIR/"
+          cp -r "$CHART_DIR/templates" chart/
+          cp "$PRESERVE_DIR/cosign-secret.yaml" "$PRESERVE_DIR/package.yaml" chart/templates/
+          rm -rf "$PRESERVE_DIR"
+
+          test -f "$COSIGN_KEY" || COSIGN_PASSWORD="" cosign generate-key-pair
+
+          HASH="$(uds zarf tools yq e '.hash' "$CHART_DIR/values.yaml")"
+          API_PATH="$(uds zarf tools yq e '.secrets.apiPath' "$CHART_DIR/values.yaml")"
+          COSIGN_B64="$(base64 -w0 "$COSIGN_PUB")"
+          export HASH API_PATH COSIGN_B64 PEPR_CONTROLLER_IMAGE
+
+          uds zarf tools yq -i '
+            .hash = strenv(HASH) |
+            .secrets.apiPath = strenv(API_PATH) |
+            .secrets.cosignPublicKey = strenv(COSIGN_B64) |
+            .admission.image = strenv(PEPR_CONTROLLER_IMAGE) |
+            .watcher.image = strenv(PEPR_CONTROLLER_IMAGE) |
+            .admission.securityContext.runAsUser = 1000 |
+            .admission.securityContext.runAsGroup = 1000 |
+            .admission.securityContext.fsGroup = 1000 |
+            .admission.containerSecurityContext.runAsUser = 1000 |
+            .admission.containerSecurityContext.runAsGroup = 1000 |
+            .watcher.securityContext.runAsUser = 1000 |
+            .watcher.securityContext.runAsGroup = 1000 |
+            .watcher.securityContext.fsGroup = 1000 |
+            .watcher.containerSecurityContext.runAsUser = 1000 |
+            .watcher.containerSecurityContext.runAsGroup = 1000
+          ' chart/values.yaml
+
+          cp policy/dist/zarf.yaml zarf.yaml
+          export VERSION PEPR_CONTROLLER_IMAGE
+          uds zarf tools yq -i '
+            .metadata.version = strenv(VERSION) |
+            .components[0].images[0] = strenv(PEPR_CONTROLLER_IMAGE) |
+            .components[0].charts[0].version = strenv(VERSION) |
+            .components[0].charts[0].localPath = "chart" |
+            .components[0].charts[0].noWait = true
+          ' zarf.yaml
+
+          go run ./cmd/transform -input chart/templates/admission-deployment.yaml
+
+          echo "==> Built chart at chart/ (CRDs deploy first via Helm convention)"
+          echo "==> Zarf config at zarf.yaml"
+
+  - name: deploy
+    description: Deploy the Pepr image signature policy directly
+    actions:
+      - cmd: |
+          set -euo pipefail
+
+          COSIGN_PUB="${COSIGN_PUB:-cosign.pub}"
+
+          echo "==> Creating cosign public key secret..."
+          kubectl create secret generic cosign-public-key \
+            --namespace pepr-system \
+            --from-file=cosign.pub="$COSIGN_PUB" \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+          echo "==> Deploying Pepr module..."
+          cd policy && npx pepr deploy --yes
+
+          echo "==> Mounting cosign public key into Pepr deployment..."
+          kubectl -n pepr-system patch deployment pepr-image-signature-policy --type=json -p '[{"op":"add","path":"/spec/template/spec/volumes/-","value":{"name":"cosign-key","secret":{"secretName":"cosign-public-key"}}},{"op":"add","path":"/spec/template/spec/containers/0/volumeMounts/-","value":{"name":"cosign-key","mountPath":"/etc/cosign","readOnly":true}}]'
+
+          echo "==> Waiting for rollout..."
+          kubectl -n pepr-system rollout status deployment/pepr-image-signature-policy
+
+  - name: test
+    description: Run positive and negative policy smoke tests
+    actions:
+      - task: test-positive
+      - task: test-negative
+
+  - name: test-positive
+    description: Verify a signed image is allowed
+    actions:
+      - cmd: |
+          echo "==> Test: Signed image should be ALLOWED"
+          echo "    Deploying signed Zarf package..."
+          zarf package deploy zarf-package-example-signed-app-*.tar.zst --confirm --timeout 60s
+          echo "    PASS: Signed image was allowed"
+
+  - name: test-negative
+    description: Verify an unsigned image is rejected
+    actions:
+      - cmd: |
+          echo "==> Test: Unsigned image should be REJECTED"
+          echo "    Building unsigned test Zarf package..."
+          (cd test/unsigned && zarf package create . --confirm --skip-sbom -o .)
+
+          echo "    Deploying unsigned package (expect timeout because policy should block pods)..."
+          (cd test/unsigned && zarf package deploy zarf-package-unsigned-test-app-*.tar.zst --confirm --timeout 15s 2>&1) || true
+
+          echo ""
+          echo "    Checking ReplicaSet for rejection reason..."
+          kubectl -n unsigned-test get replicaset -o jsonpath='{range .items[*]}{.status.conditions[*].message}{"\n"}{end}' 2>/dev/null | tee /tmp/unsigned-test-result.log
+          grep -q -i "signature verification failed" /tmp/unsigned-test-result.log \
+            && echo "    PASS: Unsigned image was rejected by policy" \
+            || echo "    FAIL: Unsigned image was not rejected by policy"
+
+          echo "    Cleaning up..."
+          kubectl delete namespace unsigned-test --ignore-not-found 2>/dev/null || true
+          rm -f test/unsigned/zarf-package-*.tar.zst

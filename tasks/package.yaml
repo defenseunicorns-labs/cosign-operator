@@ -1,0 +1,41 @@
+tasks:
+  - name: create
+    description: Create the policy Zarf package
+    actions:
+      - cmd: zarf package create . --confirm --skip-sbom
+
+  - name: create-release
+    description: Create the release Zarf package with SBOM generation
+    actions:
+      - cmd: zarf package create . --confirm
+
+  - name: create-bundle
+    description: Create the UDS test bundle
+    actions:
+      - cmd: cd bundle && uds create --confirm
+
+  - name: deploy-bundle
+    description: Deploy the UDS test bundle
+    actions:
+      - cmd: |
+          VERSION="${VERSION:-0.0.2}"
+          uds deploy "bundle/uds-bundle-image-signature-policy-amd64-$VERSION.tar.zst" --confirm
+
+  - name: render-release-zarf
+    description: Render zarf.yaml from the release template
+    actions:
+      - cmd: |
+          set -euo pipefail
+
+          VERSION="${VERSION:-0.0.2}" envsubst < zarf.yaml.tmpl.release > zarf.yaml
+          uds zarf tools yq -i '.components[0].charts[0].noWait = true' zarf.yaml
+          cat zarf.yaml
+
+  - name: clean
+    description: Remove generated build and test artifacts
+    actions:
+      - cmd: |
+          rm -f zarf.yaml manifests/deployment.yaml sbom.spdx.json
+          rm -f zarf-package-*.tar.zst
+          rm -f test/unsigned/zarf-package-*.tar.zst
+          rm -rf policy/dist/

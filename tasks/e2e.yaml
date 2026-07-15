@@ -1,0 +1,27 @@
+includes:
+  - package: ./package.yaml
+  - policy: ./policy.yaml
+
+tasks:
+  - name: ci
+    description: Build, deploy, and run the full e2e pipeline
+    actions:
+      - cmd: go build -trimpath -o bin/transform ./cmd/transform
+      - task: policy:build
+      - task: package:create
+      - task: package:create-bundle
+      - cmd: k3d cluster create
+      - cmd: kubectl wait --for=condition=Ready nodes --all --timeout=360s
+      - task: package:deploy-bundle
+      - task: setup
+      - task: test
+
+  - name: setup
+    description: Build test images, sign them, and deploy e2e fixtures
+    actions:
+      - cmd: ./e2e/setup.sh
+
+  - name: test
+    description: Run e2e tests
+    actions:
+      - cmd: npx vitest run --config e2e/vitest.config.ts
