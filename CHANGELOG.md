@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.0.14](https://github.com/defenseunicorns-labs/cosign-operator/compare/v0.0.13...v0.0.14) (2026-07-15)
+
+
+### Bug Fixes
+
+* ci and tasks ([d62f70e](https://github.com/defenseunicorns-labs/cosign-operator/commit/d62f70e569c5b7fee3d2124d60587965c35660da))
+* ci and tasks ([d7df2aa](https://github.com/defenseunicorns-labs/cosign-operator/commit/d7df2aad86da42980b3559516acfa3d9f2f3f269))
+* ci error ([d7caa88](https://github.com/defenseunicorns-labs/cosign-operator/commit/d7caa885bc0c1b79a21d0a6f40d16aff9b71e71f))
+* ci syntax ([ab83285](https://github.com/defenseunicorns-labs/cosign-operator/commit/ab83285073c74152246c287d9bead82a25ab813d))
+
 ## [0.0.13](https://github.com/defenseunicorns-labs/cosign-operator/compare/v0.0.12...v0.0.13) (2026-06-23)
 
 
