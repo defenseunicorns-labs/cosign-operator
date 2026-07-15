@@ -134,6 +134,12 @@ jobs:
             registry.defenseunicorns.com
           oras pull registry.defenseunicorns.com/navy-canes/controller:v1.2.2
 
+      - name: Install UDS CLI
+        uses: defenseunicorns/setup-uds@ab842abcad1f7a3305c2538e3dd1950d0daacfa5 # v1.0.1
+        with:
+          # renovate: datasource=github-tags depName=defenseunicorns/uds-cli versioning=semver
+          version: v0.34.1
+
       - name: Build policy and transform chart
         run: |
           cd policy && npm ci
