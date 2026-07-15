@@ -189,4 +189,4 @@ echo "==> Deploying second-key signed app to its enforced namespace via kubectl.
 kubectl apply -f "$RESOLVED/signed-app-2-e2e-sig-multikey.yaml"
 kubectl rollout status deployment/e2e-signed-app-2 -n e2e-sig-multikey --timeout=360s
 
-echo "==> Setup complete. Run: make test-e2e"
+echo "==> Setup complete. Run: uds run test-e2e"

@@ -18,11 +18,11 @@ A [Pepr](https://pepr.dev) admission controller that enforces cosign image signa
 COSIGN_PASSWORD="" cosign generate-key-pair
 
 # Build the Pepr policy and Zarf package
-make build-policy
-zarf package create . --confirm --skip-sbom
+uds run build-policy
+uds run create-package
 
 # Create the UDS bundle
-cd bundle && uds create --confirm && cd ..
+uds run create-bundle
 
 # Create a cluster and deploy
 k3d cluster create
@@ -114,8 +114,8 @@ cd policy && npm install && npm run test:unit
 Requires a running cluster with the UDS bundle deployed.
 
 ```bash
-make setup-e2e
-make test-e2e
+uds run setup-e2e
+uds run test-e2e
 ```
 
 Run individual tests:
@@ -128,11 +128,14 @@ npx vitest run --config e2e/vitest.config.ts -t "second private key"
 npx vitest run --config e2e/vitest.config.ts -t "duplicate Signature"
 ```
 
-## Make Targets
+## UDS Tasks
 
 | Target | Description |
 |---|---|
-| `make build-policy` | Build Pepr module, consolidate chart with CRDs |
-| `make setup-e2e` | Build test images, sign, create packages, deploy test fixtures |
-| `make test-e2e` | Run e2e tests |
-| `make clean` | Remove generated files |
+| `uds run build-policy` | Build Pepr module, consolidate chart with CRDs |
+| `uds run create-package` | Create the policy Zarf package |
+| `uds run create-release-package` | Create the release Zarf package with SBOM generation |
+| `uds run create-bundle` | Create the UDS bundle |
+| `uds run setup-e2e` | Build test images, sign, create packages, deploy test fixtures |
+| `uds run test-e2e` | Run e2e tests |
+| `uds run clean` | Remove generated files |

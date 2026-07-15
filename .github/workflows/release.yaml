@@ -140,8 +140,7 @@ jobs:
           cd ..
           npm ci
           go build -trimpath -ldflags="-s -w" -o bin/transform ./cmd/transform
-          make build-policy
-          ./bin/transform -input chart/templates/admission-deployment.yaml
+          uds run build-policy
 
       - name: Log in to GHCR
         run: |
@@ -150,15 +149,10 @@ jobs:
             --password-stdin
 
       - name: Render zarf.yaml with release version
-        env:
-          VERSION: ${{ needs.release-please.outputs.version }}
-        run: |
-          envsubst < zarf.yaml.tmpl.release > zarf.yaml
-          cat zarf.yaml
+        run: uds run render-release-zarf --set VERSION=${{ needs.release-please.outputs.version }}
 
       - name: Create Zarf package
-        run: |
-          zarf package create . --confirm
+        run: uds run create-release-package
 
       - name: Publish Zarf package to GHCR
         run: |

@@ -14,3 +14,4 @@ components:
         namespace: pepr-system
         version: ${VERSION}
         localPath: chart
+        noWait: true

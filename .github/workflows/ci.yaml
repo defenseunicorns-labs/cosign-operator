@@ -106,12 +106,11 @@ jobs:
 
       - name: Build policy and Zarf package
         run: |
-          make build-policy
-          ./bin/transform -input chart/templates/admission-deployment.yaml
-          zarf package create . --confirm --skip-sbom
+          uds run build-policy
+          uds run create-package
 
       - name: Create UDS bundle
-        run: cd bundle && uds create --confirm
+        run: uds run create-bundle
 
       - name: Create k3d cluster
         run: k3d cluster create
@@ -120,13 +119,13 @@ jobs:
         run: kubectl wait --for=condition=Ready nodes --all --timeout=360s
 
       - name: Deploy UDS bundle
-        run: uds deploy bundle/uds-bundle-image-signature-policy-amd64-0.0.2.tar.zst --confirm
+        run: uds run deploy-bundle
 
       - name: Setup e2e
-        run: make setup-e2e
+        run: uds run setup-e2e
 
       - name: Run e2e tests
-        run: make test-e2e
+        run: uds run test-e2e
 
       - name: Diagnostics on failure
         if: failure()

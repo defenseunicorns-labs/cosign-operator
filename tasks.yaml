@@ -1,0 +1,132 @@
+variables:
+  - name: REGISTRY
+    default: localhost:5000
+  - name: IMAGE_NAME
+    default: example-app
+  - name: IMAGE_TAG
+    default: latest
+  - name: COSIGN_KEY
+    default: cosign.key
+  - name: COSIGN_PUB
+    default: cosign.pub
+  - name: PEPR_CONTROLLER_IMAGE
+    default: registry.defenseunicorns.com/navy-canes/controller:v1.2.2
+  - name: VERSION
+    default: 0.0.2
+
+includes:
+  - image: ./tasks/image.yaml
+  - package: ./tasks/package.yaml
+  - policy: ./tasks/policy.yaml
+  - e2e: ./tasks/e2e.yaml
+
+tasks:
+  - name: default
+    description: Build the policy package, create the test bundle, and run e2e
+    actions:
+      - task: ci-e2e
+
+  - name: all
+    description: Build, push, sign, and package the example app
+    actions:
+      - task: image:all
+
+  - name: keys
+    description: Generate a cosign key pair
+    actions:
+      - task: image:keys
+
+  - name: build
+    description: Build the example app container image
+    actions:
+      - task: image:build
+
+  - name: push
+    description: Push the example app container image
+    actions:
+      - task: image:push
+
+  - name: sign-and-package
+    description: Sign, attest, render, and package the example app
+    actions:
+      - task: image:sign-and-package
+
+  - name: verify
+    description: Verify the example app signature and SBOM attestation
+    actions:
+      - task: image:verify
+
+  - name: crds
+    description: Generate TypeScript classes from CRDs
+    actions:
+      - task: policy:crds
+
+  - name: build-policy
+    description: Build Pepr module, consolidate chart, and render package config
+    actions:
+      - task: policy:build
+
+  - name: deploy-policy
+    description: Deploy the Pepr image signature policy directly
+    actions:
+      - task: policy:deploy
+
+  - name: test-policy
+    description: Run positive and negative policy smoke tests
+    actions:
+      - task: policy:test
+
+  - name: test-policy-positive
+    description: Verify a signed image is allowed
+    actions:
+      - task: policy:test-positive
+
+  - name: test-policy-negative
+    description: Verify an unsigned image is rejected
+    actions:
+      - task: policy:test-negative
+
+  - name: create-package
+    description: Create the policy Zarf package
+    actions:
+      - task: package:create
+
+  - name: create-release-package
+    description: Create the release Zarf package with SBOM generation
+    actions:
+      - task: package:create-release
+
+  - name: create-bundle
+    description: Create the UDS test bundle
+    actions:
+      - task: package:create-bundle
+
+  - name: deploy-bundle
+    description: Deploy the UDS test bundle
+    actions:
+      - task: package:deploy-bundle
+
+  - name: render-release-zarf
+    description: Render zarf.yaml from the release template
+    actions:
+      - task: package:render-release-zarf
+
+  - name: ci-e2e
+    description: Build, deploy, and run the full e2e pipeline
+    actions:
+      - task: e2e:ci
+
+  - name: setup-e2e
+    description: Build test images, sign them, and deploy e2e fixtures
+    actions:
+      - task: e2e:setup
+
+  - name: test-e2e
+    description: Run e2e tests
+    actions:
+      - task: e2e:test
+
+  - name: clean
+    description: Remove generated build and test artifacts
+    actions:
+      - task: package:clean
