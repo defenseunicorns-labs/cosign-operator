@@ -39,7 +39,7 @@ Enforces cosign image signature verification for pods in specified namespaces.
 apiVersion: policy.uds.dev/v1alpha1
 kind: SignatureEnforcement
 metadata:
-  name: example
+  name: example # cluster-scoped object
 spec:
   namespaces:
     - my-app
