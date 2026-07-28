@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.0.16](https://github.com/defenseunicorns-labs/cosign-operator/compare/v0.0.15...v0.0.16) (2026-07-28)
+
+
+### Bug Fixes
+
+* add release for canes org ([6ae2cf4](https://github.com/defenseunicorns-labs/cosign-operator/commit/6ae2cf4ba2232e86e7c125b99e02e5db18a9d209))
+* add release for tide org ([9fdae98](https://github.com/defenseunicorns-labs/cosign-operator/commit/9fdae984e1a347b5652f2c02a9b035c59f013bde))
+
 ## [0.0.15](https://github.com/defenseunicorns-labs/cosign-operator/compare/v0.0.14...v0.0.15) (2026-07-15)
 
 
